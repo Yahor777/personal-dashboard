@@ -70,7 +70,7 @@
 4. **Настройте AI:**
    - **AI Provider:** выберите `OpenRouter`
    - **API Key:** вставьте ваш ключ (Ctrl+V)
-   - **AI Model:** автоматически выбрана `google/gemma-7b-it:free`
+   - **AI Model:** автоматически выбрана `meta-llama/llama-3.1-8b-instruct:free`
 
 5. **Сохраните:**
    - Нажмите **"Save"**
@@ -111,10 +111,10 @@
 
 OpenRouter предоставляет 4 модели **ПОЛНОСТЬЮ БЕСПЛАТНО**:
 
-1. ✅ **google/gemma-7b-it:free** (рекомендуется)
-2. ✅ **mistralai/mistral-7b-instruct:free**
-3. ✅ **meta-llama/llama-3-8b-instruct:free**
-4. ✅ **nousresearch/nous-capybara-7b:free**
+1. ✅ **meta-llama/llama-3.1-8b-instruct:free** (рекомендуется)
+2. ✅ **google/gemma-2-9b-it:free**
+3. ✅ **mistralai/mistral-7b-instruct:free**
+4. ✅ **microsoft/phi-3-medium-128k-instruct:free**
 
 ### Лимиты бесплатных моделей:
 
@@ -180,7 +180,7 @@ OpenRouter предоставляет 4 модели **ПОЛНОСТЬЮ БЕС
 **Решение:**
 1. Откройте Settings
 2. Выберите модель с `:free` в конце:
-   - `google/gemma-7b-it:free` ✅
+   - `meta-llama/llama-3.1-8b-instruct:free` ✅
    - НЕ `openai/gpt-4` ❌
 3. Сохраните
 

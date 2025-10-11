@@ -144,7 +144,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     if (v === 'openrouter' && !workspace.settings.aiModel) {
                       updateSettings({ 
                         aiProvider: v as any,
-                        aiModel: 'google/gemma-7b-it:free'
+                        aiModel: 'meta-llama/llama-3.1-8b-instruct:free'
                       });
                     } else {
                       updateSettings({ aiProvider: v as any });
