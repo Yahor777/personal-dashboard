@@ -67,9 +67,14 @@ export default function App() {
 
   // Check Firebase auth state on mount (prevents black screen flicker)
   useEffect(() => {
+    console.log('🔥 Инициализация Firebase Auth...');
+    console.log('Firebase Auth URL:', auth.config.apiHost);
+    console.log('Firebase Project ID:', auth.config.apiKey.substring(0, 10) + '...');
+    
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         // User is signed in
+        console.log('✅ Пользователь вошёл:', firebaseUser.email);
         handleGoogleLogin({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -78,6 +83,7 @@ export default function App() {
         });
       } else {
         // User is signed out - reset auth state
+        console.log('❌ Пользователь не авторизован');
         useStore.setState({
           authState: {
             isAuthenticated: false,

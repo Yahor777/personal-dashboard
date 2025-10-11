@@ -67,24 +67,42 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
     setGoogleLoading(true);
 
     try {
-      console.log('Запуск Google Sign-In...');
+      console.log('🔐 Запуск Google Sign-In...');
+      console.log('Firebase Auth инициализирован:', !!auth);
+      console.log('Google Provider настроен:', !!googleProvider);
+      console.log('Текущий URL:', window.location.href);
+      
       // Use redirect instead of popup to avoid COOP errors
       await signInWithRedirect(auth, googleProvider);
+      console.log('✅ Редирект на Google начался...');
       // Note: After redirect, the page will reload and result will be checked in useEffect
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
+      console.error('❌ Google sign-in error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
       
       if (error.code === 'auth/invalid-api-key' || error.code === 'auth/invalid-project-id') {
         setError('Firebase не настроен. Пожалуйста, настройте Firebase в консоли разработчика.');
       } else if (error.code === 'auth/unauthorized-domain') {
-        setError('Домен не авторизован. Добавьте yahor777.github.io в Firebase Console → Authentication → Settings → Authorized domains');
+        setError('⚠️ Домен не авторизован!\n\nДобавьте yahor777.github.io в:\nFirebase Console → Authentication → Settings → Authorized domains');
       } else if (error.code === 'auth/operation-not-allowed') {
-        setError('Google вход отключен. Включите Google Sign-In в Firebase Console → Authentication → Sign-in method');
+        setError('Google вход отключен.\n\nВключите в:\nFirebase Console → Authentication → Sign-in method → Google');
       } else {
         setError('Ошибка входа через Google: ' + (error.message || 'Неизвестная ошибка'));
       }
       setGoogleLoading(false);
     }
+  };
+  
+  // Debug function
+  const handleDebugFirebase = () => {
+    console.log('🔍 Firebase Debug Info:');
+    console.log('- Auth instance:', auth);
+    console.log('- Current user:', auth.currentUser);
+    console.log('- API Key:', auth.config.apiKey.substring(0, 20) + '...');
+    console.log('- Auth Domain:', auth.config.authDomain);
+    console.log('- Window location:', window.location.href);
+    alert('Информация выведена в консоль (F12)');
   };
 
   // Email validation
@@ -198,6 +216,17 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
                   />
                 </svg>
                 {googleLoading ? 'Вход через Google...' : 'Войти через Google'}
+              </Button>
+
+              {/* Debug button - можно удалить после настройки */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-muted-foreground"
+                onClick={handleDebugFirebase}
+              >
+                🔍 Проверить Firebase (для отладки)
               </Button>
 
               <div className="relative my-6">
