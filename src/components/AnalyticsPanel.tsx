@@ -21,7 +21,7 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
     time,
   }));
 
-  const priorityData = workspace.cards.reduce(
+  const priorityData = (workspace.cards || []).reduce(
     (acc, card) => {
       acc[card.priority] = (acc[card.priority] || 0) + 1;
       return acc;
@@ -35,7 +35,7 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
     { name: 'Низкий', value: priorityData.low || 0, color: '#3b82f6' },
   ];
 
-  const typeData = workspace.cards.reduce(
+  const typeData = (workspace.cards || []).reduce(
     (acc, card) => {
       acc[card.type] = (acc[card.type] || 0) + 1;
       return acc;
@@ -191,7 +191,7 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(
-                  workspace.cards.reduce((acc, card) => {
+                  (workspace.cards || []).reduce((acc, card) => {
                     card.tags.forEach((tag) => {
                       acc[tag] = (acc[tag] || 0) + 1;
                     });
@@ -224,11 +224,11 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
               <div className="space-y-2">
                 <p>
                   Всего сессий:{' '}
-                  {workspace.cards.reduce((sum, card) => sum + (card.pomodoroCount || 0), 0)}
+                  {(workspace.cards || []).reduce((sum, card) => sum + (card.pomodoroCount || 0), 0)}
                 </p>
                 <p>
                   Общее время фокусировки:{' '}
-                  {workspace.cards.reduce((sum, card) => sum + (card.timeSpent || 0), 0)} минут
+                  {(workspace.cards || []).reduce((sum, card) => sum + (card.timeSpent || 0), 0)} минут
                 </p>
               </div>
             </CardContent>

@@ -79,7 +79,7 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
             <SidebarGroupContent>
               <ScrollArea className="flex-1">
                 <SidebarMenu>
-                  {workspace.tabs.length === 0 ? (
+                  {(!workspace.tabs || workspace.tabs.length === 0) ? (
                     <div className="px-4 py-8 text-center text-muted-foreground">
                       <p className="mb-4">{t('emptyTab')}</p>
                       <Button onClick={() => setIsNewTabDialogOpen(true)} size="sm">
@@ -88,7 +88,7 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
                       </Button>
                     </div>
                   ) : (
-                    workspace.tabs
+                    (workspace.tabs || [])
                       .sort((a, b) => a.order - b.order)
                       .map((tab) => (
                         <SidebarMenuItem key={tab.id}>

@@ -303,10 +303,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 Данные сохраняются локально в браузере
               </p>
               <p className="text-muted-foreground">
-                Всего карточек: {workspace.cards.length}
+                Всего карточек: {(workspace.cards || []).length}
               </p>
               <p className="text-muted-foreground">
-                Всего вкладок: {workspace.tabs.length}
+                Всего вкладок: {(workspace.tabs || []).length}
               </p>
             </div>
           </div>
