@@ -315,17 +315,20 @@ export default function App() {
         />
 
         <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center gap-2 border-b border-border bg-background px-4 py-3">
-            <SidebarTrigger className="hover:bg-accent rounded-md">
-              <Menu className="size-5" />
+          {/* Mobile menu button - fixed and always visible */}
+          <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-2 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3 shadow-sm">
+            <SidebarTrigger className="hover:bg-accent rounded-md p-2">
+              <Menu className="size-6" />
             </SidebarTrigger>
-            <h2 className="flex-1 font-semibold">{workspace.name}</h2>
+            <h2 className="flex-1 font-semibold text-lg">{workspace.name}</h2>
           </div>
+
+          {/* Mobile spacing for fixed header */}
+          <div className="md:hidden h-14" />
 
           {/* Welcome Header */}
           {workspace.settings.userName && (
-            <div className="border-b border-border bg-gradient-to-r from-primary/5 to-accent/20 px-6 py-4">
+            <div className="border-b border-border bg-gradient-to-r from-primary/5 to-accent/20 px-4 md:px-6 py-3 md:py-4">
               <h1 className="text-foreground">
                 Привет, {workspace.settings.userName} 👋
               </h1>

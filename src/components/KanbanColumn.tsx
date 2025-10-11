@@ -38,6 +38,7 @@ export function KanbanColumn({ column, tabId, cards, onCardClick }: KanbanColumn
       attachments: [],
       checklist: [],
       comments: [],
+      images: [],
       columnId: column.id,
     });
   };
@@ -56,7 +57,7 @@ export function KanbanColumn({ column, tabId, cards, onCardClick }: KanbanColumn
   };
 
   return (
-    <div className="flex w-80 shrink-0 flex-col rounded-lg bg-muted/30 p-3">
+    <div className="flex w-72 md:w-80 shrink-0 flex-col rounded-lg bg-muted/30 p-2 md:p-3" data-kanban-column>
       {/* Column Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">

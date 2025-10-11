@@ -95,35 +95,36 @@ export function KanbanBoard({ tabId, onCardClick }: KanbanBoardProps) {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-kanban-board>
       {/* Search & Filter Bar */}
-      <div className="border-b border-border bg-background p-4">
-        <div className="flex items-center gap-2">
+      <div className="border-b border-border bg-background p-2 md:p-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('search') + '...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-11"
             />
           </div>
-          <Button onClick={handleAddColumn} variant="outline" size="sm">
+          <Button onClick={handleAddColumn} variant="outline" size="default" className="h-11 whitespace-nowrap">
             <Plus className="mr-2 size-4" />
-            {t('newColumn')}
+            <span className="hidden sm:inline">{t('newColumn')}</span>
+            <span className="sm:hidden">Колонка</span>
           </Button>
         </div>
       </div>
 
       {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto">
+      <div className="flex-1 overflow-x-auto touch-pan-x">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex h-full gap-4 p-4">
+          <div className="flex h-full gap-3 md:gap-4 p-3 md:p-4">
             {tab.columns
               .sort((a, b) => a.order - b.order)
               .map((column) => (

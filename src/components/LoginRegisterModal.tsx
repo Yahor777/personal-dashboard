@@ -121,17 +121,6 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
       setGoogleLoading(false);
     }
   };
-  
-  // Debug function
-  const handleDebugFirebase = () => {
-    console.log('🔍 Firebase Debug Info:');
-    console.log('- Auth instance:', auth);
-    console.log('- Current user:', auth.currentUser);
-    console.log('- API Key:', auth.config.apiKey.substring(0, 20) + '...');
-    console.log('- Auth Domain:', auth.config.authDomain);
-    console.log('- Window location:', window.location.href);
-    alert('Информация выведена в консоль (F12)');
-  };
 
   // Email validation
   const isValidEmail = (email: string): boolean => {
@@ -244,17 +233,6 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
                   />
                 </svg>
                 {googleLoading ? 'Вход через Google...' : 'Войти через Google'}
-              </Button>
-
-              {/* Debug button - можно удалить после настройки */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="w-full text-xs text-muted-foreground"
-                onClick={handleDebugFirebase}
-              >
-                🔍 Проверить Firebase (для отладки)
               </Button>
 
               <div className="relative my-6">

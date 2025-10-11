@@ -117,26 +117,6 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
             </Card>
           </div>
 
-          {/* Time by Tab Chart */}
-          {tabData.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Время по вкладкам</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={tabData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="time" fill="hsl(var(--primary))" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Priority Distribution */}
           <Card>
             <CardHeader>
@@ -161,24 +141,6 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
                   </Pie>
                   <Tooltip />
                 </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Type Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Типы карточек</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={typeChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--chart-1))" />
-                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
