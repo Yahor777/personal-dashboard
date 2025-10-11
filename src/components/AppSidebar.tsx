@@ -1,4 +1,4 @@
-import { Plus, Settings, BarChart3, Download, Upload, Home, Sparkles, Search } from 'lucide-react';
+import { Plus, Settings, BarChart3, Download, Upload, Home, Sparkles, Search, LogOut } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
@@ -38,7 +38,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics, onOpenAI, onOpenOLXSearch }: AppSidebarProps) {
-  const { workspace, currentTabId, setCurrentTab, addTab, deleteTab, updateTab } = useStore();
+  const { workspace, currentTabId, setCurrentTab, addTab, deleteTab, updateTab, authState, logout } = useStore();
   const { t } = useTranslation(workspace.settings.language);
   const [isNewTabDialogOpen, setIsNewTabDialogOpen] = useState(false);
   const [newTabTitle, setNewTabTitle] = useState('');
@@ -170,6 +170,12 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
               <SidebarMenuButton onClick={onOpenSettings}>
                 <Settings className="size-4" />
                 <span>{t('settings')}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={logout} className="text-destructive">
+                <LogOut className="size-4" />
+                <span>Выйти {authState.currentUser && `(${authState.currentUser.name})`}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

@@ -5,7 +5,7 @@ export type Priority = 'low' | 'medium' | 'high';
 export type Language = 'ru' | 'pl' | 'en';
 export type Theme = 'light' | 'dark' | 'neon' | 'minimal';
 export type ComponentCondition = 'new' | 'like-new' | 'good' | 'fair' | 'for-parts';
-export type AIProvider = 'none' | 'openrouter' | 'openai' | 'ollama';
+export type AIProvider = 'none' | 'openrouter' | 'openai' | 'ollama' | 'perplexity';
 
 export interface ChecklistItem {
   id: string;
@@ -144,6 +144,18 @@ export interface AIConversation {
   updatedAt: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  currentUser: User | null;
+}
+
 export interface AppState {
   workspace: Workspace;
   currentTabId: string | null;
@@ -153,4 +165,5 @@ export interface AppState {
   onboardingCompleted: boolean;
   aiConversations: AIConversation[];
   currentConversationId: string | null;
+  authState: AuthState;
 }

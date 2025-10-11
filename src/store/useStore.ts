@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppState, Workspace, Tab, Card, Column, TabTemplate, Priority, CardType } from '../types';
+import type { AppState, Workspace, Tab, Card, Column, TabTemplate, Priority, CardType, User } from '../types';
 import { defaultWorkspace } from '../data/defaultData';
 
 interface StoreActions {
@@ -54,6 +54,11 @@ interface StoreActions {
   deleteAIConversation: (conversationId: string) => void;
   setCurrentConversation: (conversationId: string | null) => void;
   updateConversationTitle: (conversationId: string, title: string) => void;
+  
+  // Auth
+  register: (name: string, email: string, password: string) => boolean;
+  login: (email: string, password: string) => boolean;
+  logout: () => void;
 }
 
 type Store = AppState & StoreActions;
@@ -113,6 +118,10 @@ export const useStore = create<Store>()(
       onboardingCompleted: false,
       aiConversations: [],
       currentConversationId: null,
+      authState: {
+        isAuthenticated: false,
+        currentUser: null,
+      },
 
       // Workspace
       updateWorkspaceName: (name) =>
@@ -592,6 +601,71 @@ export const useStore = create<Store>()(
             updatedAt: new Date().toISOString(),
           },
         })),
+
+      // Auth methods
+      register: (name, email, password) => {
+        // Check if user already exists
+        const users = JSON.parse(localStorage.getItem('dashboard-users') || '[]');
+        if (users.some((u: any) => u.email === email)) {
+          return false;
+        }
+
+        // Create new user
+        const newUser: User = {
+          id: generateId(),
+          email,
+          name,
+          createdAt: new Date().toISOString(),
+        };
+
+        // Hash password (simple encoding for demo)
+        const hashedPassword = btoa(password);
+        users.push({ ...newUser, password: hashedPassword });
+        localStorage.setItem('dashboard-users', JSON.stringify(users));
+
+        // Auto-login
+        set({
+          authState: {
+            isAuthenticated: true,
+            currentUser: newUser,
+          },
+        });
+
+        return true;
+      },
+
+      login: (email, password) => {
+        const users = JSON.parse(localStorage.getItem('dashboard-users') || '[]');
+        const hashedPassword = btoa(password);
+        const user = users.find((u: any) => u.email === email && u.password === hashedPassword);
+
+        if (!user) {
+          return false;
+        }
+
+        set({
+          authState: {
+            isAuthenticated: true,
+            currentUser: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              createdAt: user.createdAt,
+            },
+          },
+        });
+
+        return true;
+      },
+
+      logout: () => {
+        set({
+          authState: {
+            isAuthenticated: false,
+            currentUser: null,
+          },
+        });
+      },
     }),
     {
       name: 'myspacehub-storage',

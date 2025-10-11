@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
@@ -7,6 +7,8 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
 import { Separator } from './ui/separator';
+import { AIModelSelector } from './AIModelSelector';
+import { toast } from 'sonner';
 import type { Language, Theme } from '../types';
 
 interface SettingsPanelProps {
@@ -173,24 +175,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
                   {/* Выбор модели */}
                   <div className="space-y-2">
-                    <Label htmlFor="ai-model">Модель AI</Label>
-                    <Input
-                      id="ai-model"
-                      value={workspace.settings.aiModel || ''}
-                      onChange={(e) => updateSettings({ aiModel: e.target.value })}
-                      placeholder={
-                        workspace.settings.aiProvider === 'openrouter' 
-                          ? 'openai/gpt-3.5-turbo'
-                          : workspace.settings.aiProvider === 'openai'
-                          ? 'gpt-3.5-turbo'
-                          : 'llama2'
-                      }
+                    <Label>Модель AI</Label>
+                    <AIModelSelector
+                      provider={workspace.settings.aiProvider}
+                      currentModel={workspace.settings.aiModel}
+                      onSelectModel={(model: string) => updateSettings({ aiModel: model })}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {workspace.settings.aiProvider === 'openrouter' && '💡 Примеры: openai/gpt-4, anthropic/claude-3-haiku'}
-                      {workspace.settings.aiProvider === 'openai' && '💡 Примеры: gpt-3.5-turbo, gpt-4'}
-                      {workspace.settings.aiProvider === 'ollama' && '💡 Примеры: llama2, mistral, codellama'}
-                    </p>
                   </div>
 
                   {/* Ollama URL */}
@@ -248,6 +238,19 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                       </>
                     )}
                   </div>
+
+                  {/* Кнопка сохранения настроек AI */}
+                  <Button 
+                    onClick={() => {
+                      toast.success('Настройки AI сохранены!', {
+                        description: `Провайдер: ${workspace.settings.aiProvider}, Модель: ${workspace.settings.aiModel || 'не выбрана'}`
+                      });
+                    }}
+                    className="w-full"
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    Сохранить настройки AI
+                  </Button>
                 </>
               )}
             </div>

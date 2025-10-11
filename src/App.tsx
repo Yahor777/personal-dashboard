@@ -9,13 +9,14 @@ import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { AIAssistantPanel } from './components/AIAssistantPanel';
 import { OLXSearchPanel } from './components/OLXSearchPanel';
 import { OnboardingOverlay } from './components/OnboardingOverlay';
+import { LoginRegisterModal } from './components/LoginRegisterModal';
 import { EmptyState } from './components/EmptyState';
 import { Toaster } from './components/ui/sonner';
 import { useStore } from './store/useStore';
 import type { Card } from './types';
 
 export default function App() {
-  const { workspace, currentTabId, setCurrentTab } = useStore();
+  const { workspace, currentTabId, setCurrentTab, authState, register, login } = useStore();
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
@@ -82,6 +83,16 @@ export default function App() {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [currentTabId, currentTab]);
+
+  // Show login/register modal if not authenticated
+  if (!authState.isAuthenticated) {
+    return (
+      <>
+        <LoginRegisterModal onLogin={login} onRegister={register} />
+        <Toaster />
+      </>
+    );
+  }
 
   return (
     <SidebarProvider>
