@@ -96,8 +96,11 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<Array<{name: string; size: number; type: string; preview?: string}>>([]);
+  const [panelWidth, setPanelWidth] = useState(768); // Default 768px (max-w-3xl)
+  const [isResizing, setIsResizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const currentConversation = aiConversations.find(c => c.id === currentConversationId);
   const currentModel = FREE_AI_MODELS.find((m: AIModel) => m.model === workspace.settings.aiModel);
@@ -108,7 +111,53 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+
+    // Auto-expand panel if code is detected in messages
+    if (currentConversation?.messages) {
+      const hasCode = currentConversation.messages.some(msg => 
+        msg.role === 'assistant' && msg.content.includes('```')
+      );
+      if (hasCode && panelWidth < 1024) {
+        setPanelWidth(1024); // Expand to 1024px when code is detected
+      }
+    }
   }, [currentConversation?.messages]);
+
+  // Handle resize drag
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const newWidth = window.innerWidth - e.clientX;
+      // Limit width between 400px and 95% of screen
+      const minWidth = 400;
+      const maxWidth = window.innerWidth * 0.95;
+      setPanelWidth(Math.max(minWidth, Math.min(maxWidth, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    if (isResizing) {
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -280,7 +329,21 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-3xl flex-col border-l border-border bg-background shadow-2xl">
+    <div 
+      ref={panelRef}
+      className="fixed inset-y-0 right-0 z-50 flex flex-col border-l border-border bg-background shadow-2xl"
+      style={{ width: window.innerWidth <= 768 ? '100vw' : `${panelWidth}px` }}
+    >
+      {/* Resize handle - только на desktop */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors hidden md:block group"
+        onMouseDown={handleResizeStart}
+      >
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-12 bg-primary/20 group-hover:bg-primary/40 rounded-full flex items-center justify-center transition-all">
+          <div className="w-0.5 h-6 bg-primary/60 rounded-full"></div>
+        </div>
+      </div>
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -291,11 +354,11 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
         onChange={handleFileSelect}
       />
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
-        <div className="flex items-center gap-3">
-          <Sparkles className="size-5 text-primary" />
-          <h2>{t('aiAssistant')}</h2>
-          <Badge variant="outline" className="text-xs">Ctrl+/</Badge>
+      <div className="flex items-center justify-between border-b border-border p-3 md:p-4 gap-2">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+          <Sparkles className="size-4 md:size-5 text-primary shrink-0" />
+          <h2 className="text-sm md:text-base truncate">{t('aiAssistant')}</h2>
+          <Badge variant="outline" className="text-xs hidden md:inline-flex">Ctrl+/</Badge>
           
           {/* Model Selector */}
           {workspace.settings.aiProvider === 'openrouter' && (
@@ -313,7 +376,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 }
               }}
             >
-              <SelectTrigger className="w-[220px] h-8 text-xs">
+              <SelectTrigger className="w-[160px] md:w-[220px] h-8 text-xs shrink-0">
                 <SelectValue placeholder="Выберите модель" />
               </SelectTrigger>
               <SelectContent>
@@ -329,20 +392,20 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
             </Select>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleNewChat}>
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={handleNewChat} className="h-8 w-8 md:h-9 md:w-auto p-0 md:px-3">
             <Plus className="size-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="size-5" />
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 md:h-9 md:w-9">
+            <X className="size-4 md:size-5" />
           </Button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Conversations Sidebar */}
-        <div className="w-64 border-r border-border bg-muted/30 p-2">
-          <ScrollArea className="h-full">
+        {/* Conversations Sidebar - скрываем на мобильных */}
+        <div className="hidden md:flex w-64 border-r border-border bg-muted/30 p-2">
+          <ScrollArea className="h-full w-full">
             <div className="space-y-1">
               {aiConversations.map((conv) => (
                 <button
@@ -353,8 +416,8 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                   }`}
                 >
                   <div className="flex-1 truncate">
-                    <div className="truncate">{conv.title}</div>
-                    <p className="truncate text-muted-foreground">
+                    <div className="truncate text-sm">{conv.title}</div>
+                    <p className="truncate text-xs text-muted-foreground">
                       {conv.messages.length} сообщений
                     </p>
                   </div>
@@ -372,9 +435,9 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 </button>
               ))}
               {aiConversations.length === 0 && (
-                <div className="p-4 text-center text-muted-foreground">
+                <div className="p-4 text-center text-muted-foreground text-sm">
                   <p>Нет чатов</p>
-                  <p className="mt-2">Начните новый разговор</p>
+                  <p className="mt-2 text-xs">Начните новый разговор</p>
                 </div>
               )}
             </div>
@@ -385,23 +448,23 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Quick Actions */}
           {!currentConversation || currentConversation.messages.length === 0 ? (
-            <div className="p-6 overflow-y-auto">
-              <h3 className="mb-4">Быстрые действия</h3>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 md:p-6 overflow-y-auto">
+              <h3 className="mb-3 md:mb-4 text-base md:text-lg">Быстрые действия</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
                 {quickActions.map((action, index) => (
                   <button
                     key={index}
                     onClick={() => handleQuickAction(action.prompt)}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all hover:border-primary hover:shadow-md"
+                    className="flex items-center gap-2 md:gap-3 rounded-lg border border-border bg-card p-3 md:p-4 text-left transition-all hover:border-primary hover:shadow-md active:scale-95"
                   >
-                    <span className="text-2xl">{action.icon}</span>
-                    <span className="flex-1">{action.label}</span>
+                    <span className="text-xl md:text-2xl shrink-0">{action.icon}</span>
+                    <span className="flex-1 text-sm md:text-base">{action.label}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="mt-6 rounded-lg bg-muted/50 p-4">
-                <h4 className="mb-2 flex items-center gap-2">
+              <div className="mt-4 md:mt-6 rounded-lg bg-muted/50 p-3 md:p-4">
+                <h4 className="mb-2 flex items-center gap-2 text-sm md:text-base">
                   <Zap className="size-4" />
                   Возможности AI
                 </h4>
@@ -433,29 +496,29 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
               {/* Messages */}
               <div className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full">
-                  <div className="p-4 space-y-4" ref={scrollRef}>
+                  <div className="p-3 md:p-4 space-y-3 md:space-y-4" ref={scrollRef}>
                   {currentConversation.messages.map((message) => (
                     <div
                       key={message.id}
                       className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] rounded-lg p-4 ${
+                        className={`max-w-[90%] md:max-w-[80%] rounded-lg p-3 md:p-4 ${
                           message.role === 'user'
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             {message.role === 'assistant' && (
-                              <Badge variant="secondary" className="mb-2">
+                              <Badge variant="secondary" className="mb-2 text-xs">
                                 <Sparkles className="mr-1 size-3" />
                                 AI
                               </Badge>
                             )}
                             {message.role === 'assistant' ? (
-                              <div className="prose prose-sm dark:prose-invert max-w-none">
+                              <div className="prose prose-sm dark:prose-invert max-w-none break-words">
                                 <ReactMarkdown 
                                   remarkPlugins={[remarkGfm]}
                                   rehypePlugins={[rehypeHighlight]}
@@ -464,7 +527,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                                     code: ({ className, children, ...props }: any) => {
                                       const match = /language-(\w+)/.exec(className || '');
                                       return !match ? (
-                                        <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                                        <code className="bg-muted px-1 py-0.5 rounded text-xs md:text-sm" {...props}>
                                           {children}
                                         </code>
                                       ) : (
@@ -473,13 +536,18 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                                         </code>
                                       );
                                     },
+                                    pre: ({ children, ...props }: any) => (
+                                      <pre className="overflow-x-auto max-w-full text-xs md:text-sm" {...props}>
+                                        {children}
+                                      </pre>
+                                    ),
                                   }}
                                 >
                                   {message.content}
                                 </ReactMarkdown>
                               </div>
                             ) : (
-                              <p className="whitespace-pre-wrap">{message.content}</p>
+                              <p className="whitespace-pre-wrap text-sm md:text-base break-words">{message.content}</p>
                             )}
                           </div>
                           {message.role === 'assistant' && (
@@ -527,30 +595,30 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
           )}
 
           {/* Input */}
-          <div className="border-t border-border p-4">
+          <div className="border-t border-border p-3 md:p-4 bg-background">
             {/* Attached files preview */}
             {attachedFiles.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
+              <div className="mb-2 md:mb-3 flex flex-wrap gap-2">
                 {attachedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2">
+                  <div key={index} className="flex items-center gap-2 rounded-lg border border-border bg-muted px-2 md:px-3 py-1.5 md:py-2">
                     {file.preview ? (
-                      <img src={file.preview} alt={file.name} className="size-8 rounded object-cover" />
+                      <img src={file.preview} alt={file.name} className="size-6 md:size-8 rounded object-cover" />
                     ) : (
-                      <FileText className="size-4" />
+                      <FileText className="size-3 md:size-4" />
                     )}
                     <div className="flex flex-col">
-                      <span className="text-xs font-medium">{file.name}</span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[10px] md:text-xs font-medium truncate max-w-[120px]">{file.name}</span>
+                      <span className="text-[9px] md:text-[10px] text-muted-foreground">
                         {(file.size / 1024).toFixed(1)} KB
                       </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-5 w-5 md:h-6 md:w-6"
                       onClick={() => removeFile(index)}
                     >
-                      <X className="size-3" />
+                      <X className="size-2.5 md:size-3" />
                     </Button>
                   </div>
                 ))}
@@ -560,9 +628,9 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
             <div className="flex gap-2">
               <button
                 type="button"
-                className={`shrink-0 flex items-center justify-center size-10 rounded-md transition-colors disabled:opacity-50 ${
+                className={`shrink-0 flex items-center justify-center h-10 w-10 md:size-10 rounded-md transition-colors disabled:opacity-50 ${
                   supportsFiles 
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-primary' 
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-primary active:scale-95' 
                     : 'bg-muted text-muted-foreground hover:bg-muted/80 border-2 border-border'
                 }`}
                 onClick={(e) => {
@@ -582,7 +650,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                   : 'Прикрепить файл (недоступно для текущей модели)'}
                 disabled={isLoading}
               >
-                <Paperclip className="size-5" />
+                <Paperclip className="size-4 md:size-5" />
               </button>
               <Input
                 value={input}
@@ -593,19 +661,23 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                     handleSend();
                   }
                 }}
-                placeholder="Напишите сообщение... (Enter для отправки)"
-                className="flex-1"
+                placeholder="Напишите сообщение..."
+                className="flex-1 text-sm md:text-base h-10"
                 disabled={isLoading}
               />
-              <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+              <Button 
+                onClick={handleSend} 
+                disabled={isLoading || !input.trim()}
+                className="h-10 w-10 md:w-auto p-0 md:px-4 active:scale-95"
+              >
                 <Send className="size-4" />
               </Button>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              💡 Shift+Enter для новой строки | 📎 {supportsFiles 
+            <p className="mt-2 text-[10px] md:text-xs text-muted-foreground line-clamp-2 md:line-clamp-1">
+              💡 <span className="hidden md:inline">Shift+Enter для новой строки | </span>📎 {supportsFiles 
                 ? `Файлы поддерживаются (${attachedFiles.length}/5)` 
-                : 'Для файлов выберите Gemini 2.0 Flash'}
-              {attachedFiles.length > 0 && ` | ${attachedFiles.length} файл(ов) прикреплено`}
+                : 'Для файлов выберите Gemini'}
+              {attachedFiles.length > 0 && ` | ${attachedFiles.length} файл(ов)`}
             </p>
           </div>
         </div>

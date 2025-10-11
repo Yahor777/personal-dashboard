@@ -4131,4 +4131,29 @@ html {
   [data-scroll-area] {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* AI Panel optimizations for mobile */
+  .prose {
+    font-size: 0.875rem !important;
+    max-width: 100% !important;
+  }
+
+  .prose pre {
+    font-size: 0.75rem !important;
+    overflow-x: auto !important;
+    max-width: 100% !important;
+  }
+
+  .prose code {
+    font-size: 0.75rem !important;
+    word-break: break-word !important;
+  }
+
+  /* Improve code block visibility on mobile */
+  .hljs {
+    font-size: 0.75rem !important;
+    padding: 0.75rem !important;
+    overflow-x: auto !important;
+  }
 }
+
