@@ -76,6 +76,14 @@ export default function App() {
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
         });
+      } else {
+        // User is signed out - reset auth state
+        useStore.setState({
+          authState: {
+            isAuthenticated: false,
+            currentUser: null,
+          },
+        });
       }
       // Auth check complete
       setIsAuthLoading(false);

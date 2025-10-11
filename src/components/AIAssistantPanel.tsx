@@ -45,6 +45,24 @@ const FREE_AI_MODELS: Array<{
     speed: 'Быстрая',
     supportsFiles: false,
   },
+  {
+    model: 'openai/gpt-oss-20b:free',
+    name: 'GPT OSS 20B',
+    speed: 'Средняя',
+    supportsFiles: false,
+  },
+  {
+    model: 'deepseek/deepseek-chat-v3.1:free',
+    name: 'DeepSeek Chat v3.1',
+    speed: 'Средняя',
+    supportsFiles: false,
+  },
+  {
+    model: 'alibaba/tongyi-deepresearch-30b-a3b:free',
+    name: 'Tongyi DeepResearch 30B',
+    speed: 'Медленная, очень умная',
+    supportsFiles: false,
+  },
 ];
 
 type AIModel = typeof FREE_AI_MODELS[number];

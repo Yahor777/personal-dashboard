@@ -34,17 +34,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   };
 
   const handleLogout = async () => {
+    if (!confirm('Выйти из аккаунта? Все данные будут сохранены и синхронизированы.')) {
+      return;
+    }
+    
     try {
       await signOut(auth);
-      
-      // Reset auth state
-      useStore.setState({
-        authState: {
-          isAuthenticated: false,
-          currentUser: null,
-        },
-      });
-      
       toast.success('Вы вышли из аккаунта');
       onClose();
     } catch (error: any) {
