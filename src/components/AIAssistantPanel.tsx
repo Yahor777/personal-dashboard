@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check, Settings2, Paperclip } from 'lucide-react';
+import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check, Settings2, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
@@ -38,9 +38,13 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<Array<{name: string; size: number; type: string; preview?: string}>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const currentConversation = aiConversations.find(c => c.id === currentConversationId);
+  const currentModel = FREE_AI_MODELS.find((m: AIModel) => m.model === workspace.settings.aiModel);
+  const supportsFiles = currentModel?.supportsFiles || false;
 
   useEffect(() => {
     // Auto-scroll to bottom on new messages
@@ -62,11 +66,24 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     setInput('');
     setIsLoading(true);
 
+    // Build message content with files info
+    let messageContent = userMessage;
+    if (attachedFiles.length > 0) {
+      messageContent += '\n\n📎 Прикрепленные файлы:\n';
+      attachedFiles.forEach(file => {
+        messageContent += `- ${file.name} (${(file.size / 1024).toFixed(1)} KB)\n`;
+      });
+      messageContent += '\n(Примечание: Отправка файлов к AI будет реализована в следующей версии)';
+    }
+
     // Add user message
     useStore.getState().addAIMessage(convId!, {
       role: 'user',
-      content: userMessage,
+      content: messageContent,
     });
+
+    // Clear attached files after sending
+    setAttachedFiles([]);
 
     try {
       // Create AI service instance
@@ -138,8 +155,84 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     }
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (!supportsFiles) {
+      toast.error('Текущая модель не поддерживает файлы', {
+        description: 'Выберите Gemini 2.0 Flash для работы с файлами',
+      });
+      return;
+    }
+
+    // Limit to 5 files total
+    if (attachedFiles.length + files.length > 5) {
+      toast.error('Максимум 5 файлов одновременно');
+      return;
+    }
+
+    // Process files
+    const processedFiles: Array<{name: string; size: number; type: string; preview?: string}> = [];
+    
+    for (const file of files) {
+      // Check size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`Файл ${file.name} слишком большой`, {
+          description: 'Максимум 10 МБ на файл',
+        });
+        continue;
+      }
+
+      const fileData: {name: string; size: number; type: string; preview?: string} = {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      };
+
+      // Generate preview for images
+      if (file.type.startsWith('image/')) {
+        try {
+          const preview = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.readAsDataURL(file);
+          });
+          fileData.preview = preview;
+        } catch (error) {
+          console.error('Failed to generate preview:', error);
+        }
+      }
+
+      processedFiles.push(fileData);
+    }
+
+    if (processedFiles.length > 0) {
+      setAttachedFiles([...attachedFiles, ...processedFiles]);
+      toast.success(`Прикреплено: ${processedFiles.length} файл(ов)`);
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(attachedFiles.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-3xl flex-col border-l border-border bg-background shadow-2xl">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf,.txt,.doc,.docx,.json,.md"
+        className="hidden"
+        onChange={handleFileSelect}
+      />
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border p-4">
         <div className="flex items-center gap-3">
@@ -154,13 +247,20 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
               onValueChange={(model: string) => {
                 useStore.getState().updateSettings({ aiModel: model });
                 toast.success('Модель изменена');
+                
+                // Clear files if new model doesn't support them
+                const newModel = FREE_AI_MODELS.find((m: AIModel) => m.model === model);
+                if (!newModel?.supportsFiles && attachedFiles.length > 0) {
+                  setAttachedFiles([]);
+                  toast.info('Файлы удалены (новая модель не поддерживает файлы)');
+                }
               }}
             >
               <SelectTrigger className="w-[220px] h-8 text-xs">
                 <SelectValue placeholder="Выберите модель" />
               </SelectTrigger>
               <SelectContent>
-                {FREE_AI_MODELS.map((model) => (
+                {FREE_AI_MODELS.map((model: AIModel) => (
                   <SelectItem key={model.model} value={model.model} className="text-xs">
                     <div className="flex flex-col">
                       <span className="font-medium">{model.name}</span>
@@ -371,21 +471,43 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
 
           {/* Input */}
           <div className="border-t border-border p-4">
+            {/* Attached files preview */}
+            {attachedFiles.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {attachedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2">
+                    {file.preview ? (
+                      <img src={file.preview} alt={file.name} className="size-8 rounded object-cover" />
+                    ) : (
+                      <FileText className="size-4" />
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium">{file.name}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => removeFile(index)}
+                    >
+                      <X className="size-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button 
                 variant="default"
                 size="icon"
                 className="shrink-0 bg-primary/20 hover:bg-primary/30 text-primary border-2 border-primary/50"
                 onClick={() => {
-                  // Check if current model supports files
-                  const currentModel = FREE_AI_MODELS.find(m => m.model === workspace.settings.aiModel);
-                  const supportsFiles = currentModel?.supportsFiles || false;
-                  
                   if (supportsFiles) {
-                    toast.info('📎 Загрузка файлов', {
-                      description: 'Функция прикрепления файлов в разработке. Текущая модель поддерживает файлы!',
-                      duration: 5000,
-                    });
+                    fileInputRef.current?.click();
                   } else {
                     toast.warning('📎 Загрузка файлов недоступна', {
                       description: 'Выберите модель с поддержкой файлов: Gemini 2.0 Flash поддерживает изображения и документы.',
@@ -393,12 +515,9 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                     });
                   }
                 }}
-                title={(() => {
-                  const currentModel = FREE_AI_MODELS.find(m => m.model === workspace.settings.aiModel);
-                  return currentModel?.supportsFiles 
-                    ? 'Прикрепить файл (поддерживается текущей моделью)' 
-                    : 'Прикрепить файл (недоступно для текущей модели)';
-                })()}
+                title={supportsFiles 
+                  ? 'Прикрепить файл (поддерживается текущей моделью)' 
+                  : 'Прикрепить файл (недоступно для текущей модели)'}
               >
                 <Paperclip className="size-5" />
               </Button>
@@ -420,12 +539,10 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
               </Button>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              💡 Shift+Enter для новой строки | 📎 {(() => {
-                const currentModel = FREE_AI_MODELS.find(m => m.model === workspace.settings.aiModel);
-                return currentModel?.supportsFiles 
-                  ? 'Файлы поддерживаются текущей моделью' 
-                  : 'Для файлов выберите Gemini 2.0 Flash';
-              })()}
+              💡 Shift+Enter для новой строки | 📎 {supportsFiles 
+                ? `Файлы поддерживаются (${attachedFiles.length}/5)` 
+                : 'Для файлов выберите Gemini 2.0 Flash'}
+              {attachedFiles.length > 0 && ` | ${attachedFiles.length} файл(ов) прикреплено`}
             </p>
           </div>
         </div>
