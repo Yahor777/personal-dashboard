@@ -143,10 +143,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     const currentModel = workspace.settings.aiModel;
                     if (!currentModel || 
                         currentModel === 'meta-llama/llama-3.1-8b-instruct:free' || 
-                        currentModel === 'microsoft/phi-3-medium-128k-instruct:free') {
+                        currentModel === 'microsoft/phi-3-medium-128k-instruct:free' ||
+                        currentModel === 'google/gemma-2-9b-it:free') {
                       updateSettings({ 
                         aiProvider: v as any,
-                        aiModel: 'google/gemma-2-9b-it:free'
+                        aiModel: 'google/gemini-flash-1.5:free'
                       });
                     } else {
                       updateSettings({ aiProvider: v as any });

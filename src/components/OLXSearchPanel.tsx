@@ -73,6 +73,10 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const handleSearch = async () => {
     setIsLoading(true);
     
+    // Build search query for OLX
+    const searchTerm = searchQuery || selectedComponent?.keywords.split(' ')[0] || 'RX 580';
+    const olxSearchUrl = `https://www.olx.pl/elektronika/komputery/podzespoly/q-${encodeURIComponent(searchTerm)}`;
+    
     // Simulate API call - в реальности здесь будет парсинг OLX
     setTimeout(() => {
       let mockResults: SearchResult[] = [
@@ -83,8 +87,8 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
           currency: 'zł',
           condition: 'like-new',
           location: 'Warszawa',
-          url: 'https://olx.pl/example1',
-          description: 'Отличное состояние, без майнинга, тесты прилагаются',
+          url: olxSearchUrl,
+          description: 'Отличное состояние, без майнинга, тесты прилагаются. (Mock данные - кликните чтобы искать на OLX)',
         },
         {
           id: '2',
@@ -93,8 +97,8 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
           currency: 'zł',
           condition: 'good',
           location: 'Kraków',
-          url: 'https://olx.pl/example2',
-          description: 'Работает отлично, цена договорная',
+          url: olxSearchUrl,
+          description: 'Работает отлично, цена договорная. (Mock данные - кликните чтобы искать на OLX)',
         },
         {
           id: '3',
@@ -103,8 +107,8 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
           currency: 'zł',
           condition: 'fair',
           location: 'Poznań',
-          url: 'https://olx.pl/example3',
-          description: 'Есть небольшие царапины на корпусе',
+          url: olxSearchUrl,
+          description: 'Есть небольшие царапины на корпусе. (Mock данные - кликните чтобы искать на OLX)',
         },
         {
           id: '4',
@@ -113,8 +117,8 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
           currency: 'zł',
           condition: 'new',
           location: 'Gdańsk',
-          url: 'https://olx.pl/example4',
-          description: 'Новая в упаковке, гарантия 2 года',
+          url: olxSearchUrl,
+          description: 'Новая в упаковке, гарантия 2 года. (Mock данные - кликните чтобы искать на OLX)',
         },
         {
           id: '5',
@@ -123,8 +127,8 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
           currency: 'zł',
           condition: 'good',
           location: 'Wrocław',
-          url: 'https://olx.pl/example5',
-          description: 'Майнинг 6 месяцев, новые термопрокладки',
+          url: olxSearchUrl,
+          description: 'Майнинг 6 месяцев, новые термопрокладки. (Mock данные - кликните чтобы искать на OLX)',
         },
       ];
 
@@ -615,20 +619,34 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
             </div>
           </div>
         ) : (
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              <strong>💡 Совет:</strong> {buildMode 
-                ? 'Выберите компоненты из результатов поиска для создания сборки ПК' 
-                : 'После добавления карточки вы сможете:'}
-            </p>
-            {!buildMode && (
-              <ul className="list-inside list-disc space-y-1 pl-4">
-                <li>Загрузить фото компонента (вкладка "Фото")</li>
-                <li>Добавить заметки о состоянии и тестах</li>
-                <li>Отследить цену и сравнить с рынком</li>
-                <li>Использовать AI для анализа объявления</li>
-              </ul>
-            )}
+          <div className="space-y-3 text-sm">
+            {/* Warning about mock data */}
+            <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-yellow-700 dark:text-yellow-400">
+              <p className="flex items-center gap-2 font-semibold">
+                <TrendingUp className="size-4" />
+                ⚠️ Демо режим
+              </p>
+              <p className="mt-1 text-xs">
+                Сейчас показаны демо-данные. Ссылки ведут на страницу поиска OLX. 
+                Для реального поиска нужна интеграция с OLX API (см. OLX_REAL_SEARCH_GUIDE.md)
+              </p>
+            </div>
+
+            <div className="text-muted-foreground">
+              <p>
+                <strong>💡 Совет:</strong> {buildMode 
+                  ? 'Выберите компоненты из результатов поиска для создания сборки ПК' 
+                  : 'После добавления карточки вы сможете:'}
+              </p>
+              {!buildMode && (
+                <ul className="list-inside list-disc space-y-1 pl-4">
+                  <li>Загрузить фото компонента (вкладка "Фото")</li>
+                  <li>Добавить заметки о состоянии и тестах</li>
+                  <li>Отследить цену и сравнить с рынком</li>
+                  <li>Использовать AI для анализа объявления</li>
+                </ul>
+              )}
+            </div>
           </div>
         )}
       </div>

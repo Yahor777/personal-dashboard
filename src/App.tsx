@@ -87,20 +87,20 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         setShowOLXSearch(true);
+        setShowAI(false);
         setShowSettings(false);
         setShowImportExport(false);
         setShowAnalytics(false);
-        setShowAI(false);
       }
 
       // Ctrl+/ or Cmd+/ - Open AI assistant
       if ((e.ctrlKey || e.metaKey) && e.key === '/') {
         e.preventDefault();
         setShowAI(true);
+        setShowOLXSearch(false);
         setShowSettings(false);
         setShowImportExport(false);
         setShowAnalytics(false);
-        setShowOLXSearch(false);
       }
 
       // Escape - Close panels
@@ -154,18 +154,18 @@ export default function App() {
             setShowOLXSearch(false);
           }}
           onOpenAI={() => {
-            setShowAI(true);
-            setShowSettings(false);
-            setShowImportExport(false);
-            setShowAnalytics(false);
             setShowOLXSearch(false);
+            setShowAnalytics(false);
+            setShowImportExport(false);
+            setShowSettings(false);
+            setShowAI(true);
           }}
           onOpenOLXSearch={() => {
-            setShowOLXSearch(true);
-            setShowSettings(false);
-            setShowImportExport(false);
-            setShowAnalytics(false);
             setShowAI(false);
+            setShowAnalytics(false);
+            setShowImportExport(false);
+            setShowSettings(false);
+            setShowOLXSearch(true);
           }}
         />
 

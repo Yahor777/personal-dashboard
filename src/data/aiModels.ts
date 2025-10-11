@@ -4,30 +4,44 @@
 export const FREE_AI_MODELS = [
   {
     provider: 'openrouter',
+    name: 'Google Gemini Flash 1.5 (FREE)',
+    model: 'google/gemini-flash-1.5:free',
+    description: '🌟 Самая умная бесплатная модель! Поддержка изображений, файлов, большой контекст',
+    speed: 'very-fast',
+  },
+  {
+    provider: 'openrouter',
+    name: 'Meta Llama 3.2 11B Vision',
+    model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
+    description: '👁️ Поддержка изображений! Может анализировать фото компонентов',
+    speed: 'fast',
+  },
+  {
+    provider: 'openrouter',
     name: 'Google Gemma 2 9B IT',
     model: 'google/gemma-2-9b-it:free',
-    description: 'Быстрая и качественная бесплатная модель от Google',
+    description: 'Быстрая и качественная модель от Google, хороша для текста',
     speed: 'fast',
   },
   {
     provider: 'openrouter',
     name: 'Mistral 7B Instruct',
     model: 'mistralai/mistral-7b-instruct:free',
-    description: 'Надёжная модель от Mistral AI',
+    description: 'Надёжная модель от Mistral AI, хороша для кода',
     speed: 'fast',
   },
   {
     provider: 'openrouter',
     name: 'Qwen 2.5 7B Instruct',
     model: 'qwen/qwen-2.5-7b-instruct:free',
-    description: 'Новая модель от Alibaba, хороша для кода',
+    description: 'Модель от Alibaba, отличается в программировании',
     speed: 'fast',
   },
   {
     provider: 'openrouter',
     name: 'Llama 3.2 3B Instruct',
     model: 'meta-llama/llama-3.2-3b-instruct:free',
-    description: 'Компактная версия Llama 3.2, очень быстрая',
+    description: 'Компактная версия, очень быстрая для простых задач',
     speed: 'very-fast',
   },
 ];
