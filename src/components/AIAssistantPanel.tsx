@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
+import { AIService } from '../services/aiService';
 import type { AIMessage } from '../types';
 
 interface AIAssistantPanelProps {
@@ -60,15 +61,31 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     });
 
     try {
-      // Call AI API (mock for now - replace with actual Ollama/OpenRouter)
-      const response = await callAI(userMessage, workspace.settings.aiProvider || 'local');
+      // Create AI service instance
+      const aiService = new AIService({
+        provider: workspace.settings.aiProvider || 'none',
+        apiKey: workspace.settings.aiApiKey,
+        model: workspace.settings.aiModel,
+        ollamaUrl: workspace.settings.ollamaUrl,
+      });
+
+      // Get conversation history
+      const currentConv = useStore.getState().aiConversations.find(c => c.id === convId);
+      const messages = currentConv?.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+      })) || [];
+
+      // Call AI
+      const response = await aiService.chat(messages);
       
       // Add AI response
       useStore.getState().addAIMessage(convId!, {
         role: 'assistant',
-        content: response,
+        content: response.content,
       });
     } catch (error) {
+      console.error('AI error:', error);
       useStore.getState().addAIMessage(convId!, {
         role: 'assistant',
         content: 'Извините, произошла ошибка. Проверьте настройки AI или попробуйте позже.',
@@ -128,7 +145,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0"
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       deleteAIConversation(conv.id);
                     }}
@@ -182,11 +199,17 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 </ul>
               </div>
 
-              {!workspace.settings.aiEnabled && (
+              {!workspace.settings.aiProvider || workspace.settings.aiProvider === 'none' ? (
                 <div className="mt-4 rounded-lg bg-yellow-500/10 p-4 text-yellow-600">
-                  <p>⚠️ AI не настроен. Перейдите в Настройки → AI для подключения Ollama или OpenRouter.</p>
+                  <p className="font-semibold mb-2">⚠️ AI не настроен</p>
+                  <p className="text-sm">Перейдите в Настройки → AI для подключения:</p>
+                  <ul className="text-sm mt-2 space-y-1">
+                    <li>• <strong>OpenRouter</strong> - доступ к GPT-4, Claude и другим моделям</li>
+                    <li>• <strong>OpenAI</strong> - прямой доступ к GPT моделям</li>
+                    <li>• <strong>Ollama</strong> - локальные модели (llama2, mistral и др.)</li>
+                  </ul>
                 </div>
-              )}
+              ) : null}
             </div>
           ) : (
             <>
@@ -268,25 +291,4 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
       </div>
     </div>
   );
-}
-
-// Mock AI function - replace with actual API calls
-async function callAI(prompt: string, provider: string): Promise<string> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // Mock responses based on keywords
-  if (prompt.toLowerCase().includes('резюме') || prompt.toLowerCase().includes('summary')) {
-    return 'Вот краткое резюме:\n\n1. Основные пункты извлечены\n2. Ключевые идеи выделены\n3. Структура сохранена\n\nДля полноценной работы подключите Ollama или OpenRouter в настройках.';
-  }
-
-  if (prompt.toLowerCase().includes('flashcard') || prompt.toLowerCase().includes('карточк')) {
-    return '**Flashcards созданы:**\n\nQ: Вопрос 1?\nA: Ответ 1\n\nQ: Вопрос 2?\nA: Ответ 2\n\nДля автоматической генерации подключите AI модель.';
-  }
-
-  if (prompt.toLowerCase().includes('olx') || prompt.toLowerCase().includes('allegro')) {
-    return '**Анализ объявления:**\n\n✅ Плюсы: хорошая цена, состояние как новое\n⚠️ Минусы: нет гарантии\n💰 Рекомендация: цена справедливая\n\nДля реального парсинга подключите AI.';
-  }
-
-  return `Получен ваш запрос. Для полноценной работы AI подключите:\n\n• **Ollama** (локально) - скачайте с ollama.ai\n• **OpenRouter** - получите API ключ на openrouter.ai\n\nПосле подключения я смогу:\n- Создавать резюме и конспекты\n- Генерировать flashcards\n- Анализировать тексты\n- Помогать с задачами\n- И многое другое!`;
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Search, ExternalLink, Plus, TrendingUp, Package } from 'lucide-react';
+import { X, Search, ExternalLink, Plus, TrendingUp, Package, Sparkles } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
@@ -8,6 +8,7 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Skeleton } from './ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { AIService, analyzeOLXListing } from '../services/aiService';
 import type { ComponentCondition } from '../types';
 
 interface OLXSearchPanelProps {
@@ -46,6 +47,8 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const [maxPrice, setMaxPrice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [analyses, setAnalyses] = useState<Record<string, string>>({});
 
   const handleSearch = async () => {
     setIsLoading(true);
@@ -124,6 +127,44 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
       marketPrice: result.price,
       olxLink: result.url,
     });
+  };
+
+  const handleAnalyzeWithAI = async (result: SearchResult) => {
+    if (!workspace.settings.aiProvider || workspace.settings.aiProvider === 'none') {
+      alert('Настройте AI в настройках для использования анализа');
+      return;
+    }
+
+    setAnalyzingId(result.id);
+    
+    try {
+      const aiService = new AIService({
+        provider: workspace.settings.aiProvider,
+        apiKey: workspace.settings.aiApiKey,
+        model: workspace.settings.aiModel,
+        ollamaUrl: workspace.settings.ollamaUrl,
+      });
+
+      const analysis = await analyzeOLXListing(
+        {
+          title: result.title,
+          price: result.price,
+          description: result.description,
+          category: componentType,
+        },
+        aiService
+      );
+
+      setAnalyses(prev => ({ ...prev, [result.id]: analysis }));
+    } catch (error) {
+      console.error('AI analysis error:', error);
+      setAnalyses(prev => ({ 
+        ...prev, 
+        [result.id]: 'Ошибка анализа. Проверьте настройки AI.' 
+      }));
+    } finally {
+      setAnalyzingId(null);
+    }
   };
 
   const selectedComponent = PC_COMPONENTS.find(c => c.value === componentType);
@@ -250,12 +291,34 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
                   </Button>
                   <Button
                     size="sm"
+                    variant="secondary"
+                    onClick={() => handleAnalyzeWithAI(result)}
+                    disabled={analyzingId === result.id}
+                  >
+                    <Sparkles className="mr-2 size-4" />
+                    {analyzingId === result.id ? 'Анализ...' : 'AI анализ'}
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => window.open(result.url, '_blank')}
                   >
                     <ExternalLink className="size-4" />
                   </Button>
                 </div>
+
+                {/* AI Analysis Result */}
+                {analyses[result.id] && (
+                  <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                      <Sparkles className="size-4" />
+                      AI Анализ
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {analyses[result.id]}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

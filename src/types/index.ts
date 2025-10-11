@@ -5,6 +5,7 @@ export type Priority = 'low' | 'medium' | 'high';
 export type Language = 'ru' | 'pl' | 'en';
 export type Theme = 'light' | 'dark' | 'neon' | 'minimal';
 export type ComponentCondition = 'new' | 'like-new' | 'good' | 'fair' | 'for-parts';
+export type AIProvider = 'none' | 'openrouter' | 'openai' | 'ollama';
 
 export interface ChecklistItem {
   id: string;
@@ -105,8 +106,10 @@ export interface AppSettings {
   notifications: boolean;
   userName?: string;
   aiEnabled?: boolean;
-  aiProvider?: 'ollama' | 'openrouter' | 'local';
+  aiProvider?: AIProvider;
   aiApiKey?: string;
+  aiModel?: string;
+  ollamaUrl?: string;
 }
 
 export interface Analytics {

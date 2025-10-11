@@ -130,41 +130,30 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
           {/* AI Settings */}
           <div>
-            <h3 className="mb-4">AI Ассистент</h3>
+            <h3 className="mb-4">🤖 AI Ассистент</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <Label>Включить AI</Label>
-                  <p className="text-muted-foreground">
-                    Умные функции и помощник
-                  </p>
-                </div>
-                <Switch
-                  checked={workspace.settings.aiEnabled || false}
-                  onCheckedChange={(checked) => updateSettings({ aiEnabled: checked })}
-                />
+                <Label>Провайдер AI</Label>
+                <Select
+                  value={workspace.settings.aiProvider || 'none'}
+                  onValueChange={(v) => updateSettings({ aiProvider: v as any })}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Не использовать</SelectItem>
+                    <SelectItem value="openrouter">OpenRouter (GPT, Claude)</SelectItem>
+                    <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+                    <SelectItem value="ollama">Ollama (локально)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {workspace.settings.aiEnabled && (
+              {workspace.settings.aiProvider && workspace.settings.aiProvider !== 'none' && (
                 <>
-                  <div className="flex items-center justify-between">
-                    <Label>Провайдер AI</Label>
-                    <Select
-                      value={workspace.settings.aiProvider || 'ollama'}
-                      onValueChange={(v) => updateSettings({ aiProvider: v as any })}
-                    >
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ollama">Ollama (локально)</SelectItem>
-                        <SelectItem value="openrouter">OpenRouter</SelectItem>
-                        <SelectItem value="local">Local Mock</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {workspace.settings.aiProvider === 'openrouter' && (
+                  {/* API Key для OpenRouter и OpenAI */}
+                  {(workspace.settings.aiProvider === 'openrouter' || workspace.settings.aiProvider === 'openai') && (
                     <div className="space-y-2">
                       <Label htmlFor="ai-key">API Key</Label>
                       <Input
@@ -172,18 +161,92 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                         type="password"
                         value={workspace.settings.aiApiKey || ''}
                         onChange={(e) => updateSettings({ aiApiKey: e.target.value })}
-                        placeholder="sk-..."
+                        placeholder={workspace.settings.aiProvider === 'openai' ? 'sk-...' : 'sk-or-v1-...'}
                       />
-                      <p className="text-muted-foreground">
-                        Получите бесплатный ключ на openrouter.ai
+                      <p className="text-xs text-muted-foreground">
+                        {workspace.settings.aiProvider === 'openrouter' 
+                          ? '🔗 Получите на openrouter.ai (есть бесплатные модели)'
+                          : '🔗 Получите на platform.openai.com'}
                       </p>
                     </div>
                   )}
 
-                  <div className="rounded-lg bg-muted/50 p-3">
-                    <p className="text-muted-foreground">
-                      💡 <strong>Ollama:</strong> Скачайте с ollama.ai для локальной работы
+                  {/* Выбор модели */}
+                  <div className="space-y-2">
+                    <Label htmlFor="ai-model">Модель AI</Label>
+                    <Input
+                      id="ai-model"
+                      value={workspace.settings.aiModel || ''}
+                      onChange={(e) => updateSettings({ aiModel: e.target.value })}
+                      placeholder={
+                        workspace.settings.aiProvider === 'openrouter' 
+                          ? 'openai/gpt-3.5-turbo'
+                          : workspace.settings.aiProvider === 'openai'
+                          ? 'gpt-3.5-turbo'
+                          : 'llama2'
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {workspace.settings.aiProvider === 'openrouter' && '💡 Примеры: openai/gpt-4, anthropic/claude-3-haiku'}
+                      {workspace.settings.aiProvider === 'openai' && '💡 Примеры: gpt-3.5-turbo, gpt-4'}
+                      {workspace.settings.aiProvider === 'ollama' && '💡 Примеры: llama2, mistral, codellama'}
                     </p>
+                  </div>
+
+                  {/* Ollama URL */}
+                  {workspace.settings.aiProvider === 'ollama' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="ollama-url">Ollama URL</Label>
+                      <Input
+                        id="ollama-url"
+                        value={workspace.settings.ollamaUrl || ''}
+                        onChange={(e) => updateSettings({ ollamaUrl: e.target.value })}
+                        placeholder="http://localhost:11434"
+                      />
+                      <div className="rounded-lg bg-blue-500/10 p-3 text-sm text-blue-600">
+                        <p className="font-semibold mb-1">🚀 Установка Ollama:</p>
+                        <ol className="list-decimal list-inside space-y-1">
+                          <li>Скачайте с ollama.ai</li>
+                          <li>Установите и запустите</li>
+                          <li>В терминале: <code className="bg-blue-500/20 px-1 rounded">ollama run llama2</code></li>
+                        </ol>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Информация о провайдере */}
+                  <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-2">
+                    {workspace.settings.aiProvider === 'openrouter' && (
+                      <>
+                        <p className="font-semibold">✨ OpenRouter плюсы:</p>
+                        <ul className="space-y-1 text-muted-foreground">
+                          <li>• Доступ к GPT-4, Claude, Llama и другим моделям</li>
+                          <li>• Есть бесплатные модели для начала</li>
+                          <li>• Единый API для всех моделей</li>
+                        </ul>
+                      </>
+                    )}
+                    {workspace.settings.aiProvider === 'openai' && (
+                      <>
+                        <p className="font-semibold">✨ OpenAI:</p>
+                        <ul className="space-y-1 text-muted-foreground">
+                          <li>• Официальные модели GPT</li>
+                          <li>• Высокое качество ответов</li>
+                          <li>• Требуется API ключ с балансом</li>
+                        </ul>
+                      </>
+                    )}
+                    {workspace.settings.aiProvider === 'ollama' && (
+                      <>
+                        <p className="font-semibold">✨ Ollama плюсы:</p>
+                        <ul className="space-y-1 text-muted-foreground">
+                          <li>• Полностью локально и бесплатно</li>
+                          <li>• Не нужен API ключ</li>
+                          <li>• Работает без интернета</li>
+                          <li>• Конфиденциальность данных</li>
+                        </ul>
+                      </>
+                    )}
                   </div>
                 </>
               )}
