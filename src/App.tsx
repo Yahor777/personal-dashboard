@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
-import { SidebarProvider, useSidebar } from './components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar';
 import { Button } from './components/ui/button';
 import { AppSidebar } from './components/AppSidebar';
 import { KanbanBoard } from './components/KanbanBoard';
@@ -209,19 +209,14 @@ export default function App() {
         <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2 border-b border-border bg-background px-4 py-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const sidebar = document.querySelector('[data-sidebar]');
-                if (sidebar) {
-                  const isExpanded = sidebar.getAttribute('data-state') === 'expanded';
-                  sidebar.setAttribute('data-state', isExpanded ? 'collapsed' : 'expanded');
-                }
-              }}
-            >
-              <Menu className="size-5" />
-            </Button>
+            <SidebarTrigger>
+              <Button
+                variant="ghost"
+                size="icon"
+              >
+                <Menu className="size-5" />
+              </Button>
+            </SidebarTrigger>
             <h2 className="flex-1 font-semibold">{workspace.name}</h2>
           </div>
 
