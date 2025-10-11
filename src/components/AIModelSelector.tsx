@@ -65,22 +65,18 @@ export function AIModelSelector({ provider, currentModel, onSelectModel }: AIMod
       <div className="space-y-3">
         {/* Info banner */}
         <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-sm">
-          <p className="font-semibold text-primary mb-1">🔑 Нужен API ключ OpenRouter</p>
-          <p className="text-muted-foreground text-xs">
-            1. Зайдите на{' '}
-            <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" className="text-primary hover:underline">
-              openrouter.ai/keys
-            </a>
-          </p>
-          <p className="text-muted-foreground text-xs">
-            2. Создайте бесплатный аккаунт
-          </p>
-          <p className="text-muted-foreground text-xs">
-            3. Скопируйте API ключ (начинается с sk-or-v1-)
-          </p>
-          <p className="text-muted-foreground text-xs">
-            4. Вставьте в поле выше
-          </p>
+          <p className="font-semibold text-primary mb-2">🔑 Как получить БЕСПЛАТНЫЙ API ключ OpenRouter</p>
+          <ol className="text-muted-foreground text-xs space-y-1 list-decimal list-inside">
+            <li>Перейдите на{' '}
+              <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" className="text-primary hover:underline font-medium">
+                openrouter.ai/keys
+              </a>
+            </li>
+            <li>Войдите через Google/GitHub или создайте аккаунт</li>
+            <li>Нажмите "Create Key" → Скопируйте ключ (sk-or-v1-...)</li>
+            <li>Вставьте в поле "API Key" выше</li>
+            <li>Бесплатные модели дают $1-5 кредитов в день! 🎉</li>
+          </ol>
         </div>
 
         <div>
@@ -90,6 +86,9 @@ export function AIModelSelector({ provider, currentModel, onSelectModel }: AIMod
             </span>
             Бесплатные модели (рекомендуется)
           </h4>
+          <p className="text-xs text-muted-foreground mb-2">
+            Эти модели полностью бесплатны для использования:
+          </p>
           <div className="space-y-2">
             {FREE_AI_MODELS.map((model) =>
               renderModelCard(model, model.model === currentModel)

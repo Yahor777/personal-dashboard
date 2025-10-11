@@ -138,7 +138,18 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <Label>Провайдер AI</Label>
                 <Select
                   value={workspace.settings.aiProvider || 'none'}
-                  onValueChange={(v) => updateSettings({ aiProvider: v as any })}
+                  onValueChange={(v) => {
+                    updateSettings({ aiProvider: v as any });
+                    // Автоматически выбрать бесплатную модель для OpenRouter
+                    if (v === 'openrouter' && !workspace.settings.aiModel) {
+                      updateSettings({ 
+                        aiProvider: v as any,
+                        aiModel: 'google/gemma-7b-it:free'
+                      });
+                    } else {
+                      updateSettings({ aiProvider: v as any });
+                    }
+                  }}
                 >
                   <SelectTrigger className="w-48">
                     <SelectValue />
