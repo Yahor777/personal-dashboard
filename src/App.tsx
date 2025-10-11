@@ -342,17 +342,6 @@ export default function App() {
         />
 
         <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
-          {/* Mobile menu button - fixed and always visible */}
-          <div className="md:hidden fixed top-0 left-0 right-0 z-[100] flex items-center gap-2 border-b border-border bg-background px-4 py-3 shadow-md">
-            <SidebarTrigger className="hover:bg-accent rounded-md p-2 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground shadow-lg">
-              <Menu className="size-6" />
-            </SidebarTrigger>
-            <h2 className="flex-1 font-semibold text-base">{workspace.name}</h2>
-          </div>
-
-          {/* Mobile spacing for fixed header */}
-          <div className="md:hidden h-[60px]" />
-
           {currentTab ? (
             <KanbanBoard 
               tabId={currentTab.id} 

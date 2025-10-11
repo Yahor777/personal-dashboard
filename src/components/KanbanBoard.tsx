@@ -5,9 +5,10 @@ import { useStore } from '../store/useStore';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 import { Button } from './ui/button';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Menu } from 'lucide-react';
 import { Input } from './ui/input';
 import { useTranslation } from '../data/translations';
+import { SidebarTrigger } from './ui/sidebar';
 import type { Card } from '../types';
 
 interface KanbanBoardProps {
@@ -98,21 +99,30 @@ export function KanbanBoard({ tabId, onCardClick }: KanbanBoardProps) {
     <div className="flex h-full flex-col" data-kanban-board>
       {/* Search & Filter Bar */}
       <div className="border-b border-border bg-background p-2 md:p-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t('search') + '...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-11"
-            />
+        <div className="flex items-center gap-2">
+          {/* Mobile menu button */}
+          <SidebarTrigger className="md:hidden shrink-0">
+            <Button variant="outline" size="icon" className="h-10 w-10">
+              <Menu className="size-5" />
+            </Button>
+          </SidebarTrigger>
+          
+          <div className="flex flex-1 items-center gap-2 flex-wrap">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t('search') + '...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-11"
+              />
+            </div>
+            <Button onClick={handleAddColumn} variant="outline" size="default" className="h-11 whitespace-nowrap">
+              <Plus className="mr-2 size-4" />
+              <span className="hidden sm:inline">{t('newColumn')}</span>
+              <span className="sm:hidden">Колонка</span>
+            </Button>
           </div>
-          <Button onClick={handleAddColumn} variant="outline" size="default" className="h-11 whitespace-nowrap">
-            <Plus className="mr-2 size-4" />
-            <span className="hidden sm:inline">{t('newColumn')}</span>
-            <span className="sm:hidden">Колонка</span>
-          </Button>
         </div>
       </div>
 
