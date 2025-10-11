@@ -1,20 +1,22 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAnalytics } from 'firebase/analytics';
 
-// Firebase configuration
-// ВАЖНО: Замените эти значения на свои из Firebase Console
-// https://console.firebase.google.com/ → Project Settings → General
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: (import.meta as any).env?.VITE_FIREBASE_API_KEY || "AIzaSyDemoKey-ReplaceWithYourOwnKey",
-  authDomain: (import.meta as any).env?.VITE_FIREBASE_AUTH_DOMAIN || "personal-dashboard-demo.firebaseapp.com",
-  projectId: (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID || "personal-dashboard-demo",
-  storageBucket: (import.meta as any).env?.VITE_FIREBASE_STORAGE_BUCKET || "personal-dashboard-demo.appspot.com",
-  messagingSenderId: (import.meta as any).env?.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
-  appId: (import.meta as any).env?.VITE_FIREBASE_APP_ID || "1:123456789012:web:abcdef1234567890"
+  apiKey: "AIzaSyArknUpV4qb2dvcMKRNAQDowJaLid7vBLI",
+  authDomain: "personal-dashboard-204da.firebaseapp.com",
+  projectId: "personal-dashboard-204da",
+  storageBucket: "personal-dashboard-204da.firebasestorage.app",
+  messagingSenderId: "330879438401",
+  appId: "1:330879438401:web:ddfbe0211ff2b9eafbc0c0",
+  measurementId: "G-LDQBBCFH4K"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);

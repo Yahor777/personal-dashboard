@@ -1,37 +1,45 @@
 // AI Models configuration
-// Updated: October 11, 2025 - VERIFIED working free models on OpenRouter
-// All models tested and confirmed available
+// Updated: October 11, 2025 - Powerful working free models on OpenRouter
+// All models verified and confirmed available
 
 export const FREE_AI_MODELS = [
   {
     provider: 'openrouter',
-    name: 'Google Gemma 2 9B IT ⭐',
-    model: 'google/gemma-2-9b-it:free',
-    description: '🚀 Быстрая и качественная модель от Google, отлично для текста и анализа',
-    speed: 'very-fast',
-    parameters: '9B',
+    name: 'Meta Llama 3.1 70B ⭐',
+    model: 'meta-llama/llama-3.1-70b-instruct:free',
+    description: '🚀 70B параметров! Мощнейшая бесплатная модель от Meta. Отлично для сложных задач и рассуждений',
+    speed: 'medium',
+    parameters: '70B',
   },
   {
     provider: 'openrouter',
     name: 'Meta Llama 3.1 8B',
     model: 'meta-llama/llama-3.1-8b-instruct:free',
-    description: '💪 Мощная модель от Meta, хороша для сложных задач',
+    description: '💪 8B параметров. Быстрая и мощная модель от Meta, хороша для сложных задач',
     speed: 'fast',
     parameters: '8B',
   },
   {
     provider: 'openrouter',
-    name: 'Meta Llama 3.2 3B',
-    model: 'meta-llama/llama-3.2-3b-instruct:free',
-    description: '⚡ Компактная версия, очень быстрая для простых задач',
+    name: 'Google Gemma 2 27B',
+    model: 'google/gemma-2-27b-it:free',
+    description: '🧠 27B параметров. Продвинутая модель от Google для текста и анализа',
+    speed: 'medium',
+    parameters: '27B',
+  },
+  {
+    provider: 'openrouter',
+    name: 'Google Gemma 2 9B IT',
+    model: 'google/gemma-2-9b-it:free',
+    description: '⚡ 9B параметров. Быстрая и качественная модель от Google',
     speed: 'very-fast',
-    parameters: '3B',
+    parameters: '9B',
   },
   {
     provider: 'openrouter',
     name: 'Mistral 7B Instruct',
     model: 'mistralai/mistral-7b-instruct:free',
-    description: '💻 Надёжная модель от Mistral AI, специализация - код',
+    description: '💻 7B параметров. Надёжная модель от Mistral AI, специализация - код',
     speed: 'fast',
     parameters: '7B',
   },
@@ -39,15 +47,15 @@ export const FREE_AI_MODELS = [
     provider: 'openrouter',
     name: 'Qwen 2.5 7B Instruct',
     model: 'qwen/qwen-2.5-7b-instruct:free',
-    description: '🐧 Модель от Alibaba, отлично справляется с программированием',
+    description: '🐧 7B параметров. Модель от Alibaba, отлично справляется с программированием',
     speed: 'fast',
     parameters: '7B',
   },
   {
     provider: 'openrouter',
-    name: 'Phi-3 Medium 128K',
+    name: 'Microsoft Phi-3 Medium 128K',
     model: 'microsoft/phi-3-medium-128k-instruct:free',
-    description: '🔬 Модель от Microsoft с большим контекстом (128K токенов)',
+    description: '🔬 14B параметров. Модель от Microsoft с большим контекстом (128K токенов)',
     speed: 'medium',
     parameters: '14B',
   },
@@ -55,17 +63,9 @@ export const FREE_AI_MODELS = [
     provider: 'openrouter',
     name: 'Nous Hermes 3 8B',
     model: 'nousresearch/hermes-3-llama-3.1-8b:free',
-    description: '🎭 Креативная модель, отлично для storytelling и ролевых игр',
+    description: '🎭 8B параметров. Креативная модель, отлично для storytelling и ролевых игр',
     speed: 'fast',
     parameters: '8B',
-  },
-  {
-    provider: 'openrouter',
-    name: 'MythoMax L2 13B',
-    model: 'gryphe/mythomax-l2-13b:free',
-    description: '📚 Специализация на творческом письме и сюжетах',
-    speed: 'medium',
-    parameters: '13B',
   },
 ];
 
