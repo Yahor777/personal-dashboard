@@ -5,10 +5,10 @@ import { Button } from './ui/button';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function OnboardingOverlay() {
-  const { onboardingCompleted, completeOnboarding } = useStore();
+  const { workspace, updateSettings } = useStore();
   const [step, setStep] = useState(0);
 
-  if (onboardingCompleted) return null;
+  if (workspace.settings.onboardingCompleted) return null;
 
   const steps = [
     {
@@ -39,12 +39,12 @@ export function OnboardingOverlay() {
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
-      completeOnboarding();
+      updateSettings({ onboardingCompleted: true });
     }
   };
 
   const handleSkip = () => {
-    completeOnboarding();
+    updateSettings({ onboardingCompleted: true });
   };
 
   return (

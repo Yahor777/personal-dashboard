@@ -172,6 +172,7 @@ export const defaultWorkspace: Workspace = {
     userName: 'Егор',
     aiEnabled: false,
     aiProvider: 'ollama',
+    onboardingCompleted: false,
   },
   createdAt: '2025-10-01T00:00:00.000Z',
   updatedAt: '2025-10-10T12:00:00.000Z',

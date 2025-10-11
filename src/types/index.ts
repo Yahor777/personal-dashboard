@@ -110,6 +110,7 @@ export interface AppSettings {
   aiApiKey?: string;
   aiModel?: string;
   ollamaUrl?: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface Analytics {
@@ -162,7 +163,6 @@ export interface AppState {
   searchQuery: string;
   filterTags: string[];
   filterPriority: Priority[];
-  onboardingCompleted: boolean;
   aiConversations: AIConversation[];
   currentConversationId: string | null;
   authState: AuthState;

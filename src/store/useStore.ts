@@ -42,9 +42,6 @@ interface StoreActions {
   // Settings
   updateSettings: (settings: Partial<AppState['workspace']['settings']>) => void;
   
-  // Onboarding
-  completeOnboarding: () => void;
-  
   // Analytics
   getAnalytics: () => any;
   
@@ -115,7 +112,6 @@ export const useStore = create<Store>()(
       searchQuery: '',
       filterTags: [],
       filterPriority: [],
-      onboardingCompleted: false,
       aiConversations: [],
       currentConversationId: null,
       authState: {
@@ -449,9 +445,6 @@ export const useStore = create<Store>()(
             updatedAt: new Date().toISOString(),
           },
         })),
-
-      // Onboarding
-      completeOnboarding: () => set({ onboardingCompleted: true }),
 
       // Analytics
       getAnalytics: () => {
