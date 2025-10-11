@@ -353,25 +353,6 @@ export default function App() {
           {/* Mobile spacing for fixed header */}
           <div className="md:hidden h-[60px]" />
 
-          {/* Welcome Header - ALWAYS VISIBLE */}
-          <div className="border-b border-border bg-gradient-to-r from-primary/10 to-accent/30 px-4 md:px-6 py-4 md:py-5">
-            <h1 className="text-lg md:text-xl font-bold text-foreground">
-              Привет{workspace.settings.userName ? `, ${workspace.settings.userName}` : ''} 👋
-            </h1>
-            <p className="text-sm md:text-base text-foreground/80 mt-1">
-              У тебя{' '}
-              {(workspace.cards || []).filter(
-                (c) =>
-                  !(workspace.tabs || [])
-                    .find((t) => (t.columns || []).some((col) => col.id === c.columnId))
-                    ?.columns?.find((col) => col.id === c.columnId)
-                    ?.title?.toLowerCase()
-                    .includes('done')
-              ).length}{' '}
-              активных задач
-            </p>
-          </div>
-
           {currentTab ? (
             <KanbanBoard 
               tabId={currentTab.id} 
