@@ -8,7 +8,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AIService } from '../services/aiService';
-import { FREE_AI_MODELS } from '../data/aiModels';
+import { FREE_AI_MODELS, type AIModel } from '../data/aiModels';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -377,12 +377,28 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 size="icon"
                 className="shrink-0 bg-primary/20 hover:bg-primary/30 text-primary border-2 border-primary/50"
                 onClick={() => {
-                  toast.info('📎 Загрузка файлов', {
-                    description: 'Бесплатные модели не поддерживают файлы/изображения. Используйте платные модели (GPT-4, Claude) для работы с файлами.',
-                    duration: 5000,
-                  });
+                  // Check if current model supports files
+                  const currentModel = FREE_AI_MODELS.find(m => m.model === workspace.settings.aiModel);
+                  const supportsFiles = currentModel?.supportsFiles || false;
+                  
+                  if (supportsFiles) {
+                    toast.info('📎 Загрузка файлов', {
+                      description: 'Функция прикрепления файлов в разработке. Текущая модель поддерживает файлы!',
+                      duration: 5000,
+                    });
+                  } else {
+                    toast.warning('📎 Загрузка файлов недоступна', {
+                      description: 'Выберите модель с поддержкой файлов: Gemini 2.0 Flash поддерживает изображения и документы.',
+                      duration: 5000,
+                    });
+                  }
                 }}
-                title="Прикрепить файл (доступно в платных моделях)"
+                title={(() => {
+                  const currentModel = FREE_AI_MODELS.find(m => m.model === workspace.settings.aiModel);
+                  return currentModel?.supportsFiles 
+                    ? 'Прикрепить файл (поддерживается текущей моделью)' 
+                    : 'Прикрепить файл (недоступно для текущей модели)';
+                })()}
               >
                 <Paperclip className="size-5" />
               </Button>
@@ -404,7 +420,12 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
               </Button>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              💡 Shift+Enter для новой строки | 📎 Файлы доступны в платных моделях (GPT-4, Claude)
+              💡 Shift+Enter для новой строки | 📎 {(() => {
+                const currentModel = FREE_AI_MODELS.find(m => m.model === workspace.settings.aiModel);
+                return currentModel?.supportsFiles 
+                  ? 'Файлы поддерживаются текущей моделью' 
+                  : 'Для файлов выберите Gemini 2.0 Flash';
+              })()}
             </p>
           </div>
         </div>
