@@ -1,47 +1,41 @@
 // AI Models configuration
-// Updated: October 2025 - Using verified working free models from OpenRouter
+// Updated: October 11, 2025 - Only verified working free models
+// Removed: gemini-flash-1.5:free, llama-3.2-vision (404 errors from OpenRouter)
 
 export const FREE_AI_MODELS = [
   {
     provider: 'openrouter',
-    name: 'Google Gemini Flash 1.5 (FREE)',
-    model: 'google/gemini-flash-1.5:free',
-    description: '🌟 Самая умная бесплатная модель! Поддержка изображений, файлов, большой контекст',
+    name: 'Google Gemma 2 9B IT ⭐',
+    model: 'google/gemma-2-9b-it:free',
+    description: '🚀 Быстрая и качественная модель от Google, отлично для текста и анализа',
     speed: 'very-fast',
   },
   {
     provider: 'openrouter',
-    name: 'Meta Llama 3.2 11B Vision',
-    model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
-    description: '👁️ Поддержка изображений! Может анализировать фото компонентов',
-    speed: 'fast',
-  },
-  {
-    provider: 'openrouter',
-    name: 'Google Gemma 2 9B IT',
-    model: 'google/gemma-2-9b-it:free',
-    description: 'Быстрая и качественная модель от Google, хороша для текста',
+    name: 'Meta Llama 3.1 8B',
+    model: 'meta-llama/llama-3.1-8b-instruct:free',
+    description: '� Мощная модель от Meta, хороша для сложных задач',
     speed: 'fast',
   },
   {
     provider: 'openrouter',
     name: 'Mistral 7B Instruct',
     model: 'mistralai/mistral-7b-instruct:free',
-    description: 'Надёжная модель от Mistral AI, хороша для кода',
+    description: '💻 Надёжная модель от Mistral AI, специализация - код',
     speed: 'fast',
   },
   {
     provider: 'openrouter',
     name: 'Qwen 2.5 7B Instruct',
     model: 'qwen/qwen-2.5-7b-instruct:free',
-    description: 'Модель от Alibaba, отличается в программировании',
+    description: '🐧 Модель от Alibaba, отлично справляется с программированием',
     speed: 'fast',
   },
   {
     provider: 'openrouter',
     name: 'Llama 3.2 3B Instruct',
     model: 'meta-llama/llama-3.2-3b-instruct:free',
-    description: 'Компактная версия, очень быстрая для простых задач',
+    description: '⚡ Компактная версия, очень быстрая для простых задач',
     speed: 'very-fast',
   },
 ];

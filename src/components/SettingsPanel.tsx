@@ -139,15 +139,19 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <Select
                   value={workspace.settings.aiProvider || 'none'}
                   onValueChange={(v: string) => {
-                    // Auto-select working free model if using old broken model
+                    // Auto-migrate from broken models (404 errors from OpenRouter)
                     const currentModel = workspace.settings.aiModel;
-                    if (!currentModel || 
-                        currentModel === 'meta-llama/llama-3.1-8b-instruct:free' || 
-                        currentModel === 'microsoft/phi-3-medium-128k-instruct:free' ||
-                        currentModel === 'google/gemma-2-9b-it:free') {
+                    const brokenModels = [
+                      'google/gemini-flash-1.5:free',
+                      'meta-llama/llama-3.2-11b-vision-instruct:free',
+                      'meta-llama/llama-3.1-8b-instruct:free',
+                      'microsoft/phi-3-medium-128k-instruct:free'
+                    ];
+                    
+                    if (!currentModel || brokenModels.includes(currentModel)) {
                       updateSettings({ 
                         aiProvider: v as any,
-                        aiModel: 'google/gemini-flash-1.5:free'
+                        aiModel: 'google/gemma-2-9b-it:free'
                       });
                     } else {
                       updateSettings({ aiProvider: v as any });

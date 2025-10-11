@@ -65,10 +65,95 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [analyses, setAnalyses] = useState<Record<string, string>>({});
+  const [aiSearching, setAiSearching] = useState(false);
   
   // PC Build Mode
   const [buildMode, setBuildMode] = useState(false);
   const [selectedComponents, setSelectedComponents] = useState<SearchResult[]>([]);
+
+  const handleAISearch = async () => {
+    if (!workspace.settings.aiProvider || workspace.settings.aiProvider === 'none') {
+      toast.error('⚠️ Настройте AI в Settings для использования умного поиска!');
+      return;
+    }
+
+    if (!searchQuery.trim()) {
+      toast.error('Введите запрос для AI поиска');
+      return;
+    }
+
+    setAiSearching(true);
+    setIsLoading(true);
+    
+    try {
+      const aiService = new AIService({
+        provider: workspace.settings.aiProvider,
+        apiKey: workspace.settings.aiApiKey,
+        model: workspace.settings.aiModel,
+        ollamaUrl: workspace.settings.ollamaUrl,
+      });
+
+      // Ask AI to enhance search query
+      const prompt = `Ты эксперт по компьютерным комплектующим. Пользователь ищет: "${searchQuery}"
+
+Задача: проанализируй запрос и предложи:
+1. Лучшие ключевые слова для поиска на OLX (польский рынок)
+2. Какие характеристики важны для этого компонента
+3. На что обратить внимание при покупке
+4. Примерную справедливую цену в злотых (zł)
+
+Ответь в формате JSON:
+{
+  "searchTerms": ["термин1", "термин2"],
+  "specs": ["характеристика1", "характеристика2"],
+  "warnings": ["предупреждение1", "предупреждение2"],
+  "priceRange": {"min": 100, "max": 300}
+}`;
+
+      const result = await aiService.chat([
+        { role: 'user', content: prompt }
+      ]);
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      // Try to extract JSON from response
+      const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const aiResult = JSON.parse(jsonMatch[0]);
+        
+        // Update search query with AI suggestions
+        const enhancedQuery = aiResult.searchTerms?.[0] || searchQuery;
+        setSearchQuery(enhancedQuery);
+        
+        // Show AI suggestions
+        toast.success(`🤖 AI рекомендует искать: "${enhancedQuery}"`, {
+          description: `Цена: ${aiResult.priceRange?.min || '?'}-${aiResult.priceRange?.max || '?'} zł`,
+          duration: 5000,
+        });
+        
+        // Auto-set price range if provided
+        if (aiResult.priceRange) {
+          setMinPrice(aiResult.priceRange.min.toString());
+          setMaxPrice(aiResult.priceRange.max.toString());
+        }
+        
+        // Trigger regular search with enhanced query
+        setTimeout(() => handleSearch(), 500);
+      } else {
+        // AI didn't return JSON, just use the response as enhanced query
+        toast.success('🤖 AI обработал ваш запрос');
+        handleSearch();
+      }
+    } catch (error) {
+      console.error('AI search error:', error);
+      toast.error('Ошибка AI поиска. Проверьте настройки AI.');
+    } finally {
+      setAiSearching(false);
+      setIsLoading(false);
+    }
+  };
 
   const handleSearch = async () => {
     setIsLoading(true);
@@ -334,6 +419,15 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
                 if (e.key === 'Enter') handleSearch();
               }}
             />
+            <Button 
+              onClick={handleAISearch} 
+              disabled={isLoading || aiSearching}
+              variant="outline"
+              className="border-primary/50 hover:bg-primary/10"
+            >
+              <Sparkles className="mr-2 size-4" />
+              AI Поиск
+            </Button>
             <Button onClick={handleSearch} disabled={isLoading}>
               <Search className="mr-2 size-4" />
               Поиск
