@@ -54,6 +54,10 @@ export default function App() {
     if (savedWorkspace) {
       try {
         const workspace = JSON.parse(savedWorkspace);
+        // Validate workspace structure
+        if (!workspace.tabs) workspace.tabs = [];
+        if (!workspace.cards) workspace.cards = [];
+        if (!workspace.settings) workspace.settings = {};
         useStore.setState({ workspace });
       } catch (error) {
         console.error('Failed to load workspace:', error);
@@ -111,6 +115,11 @@ export default function App() {
       const unsubscribe = onValue(userWorkspaceRef, (snapshot) => {
         const data = snapshot.val();
         if (data && data.lastModified) {
+          // Validate workspace data structure
+          if (!data.tabs) data.tabs = [];
+          if (!data.cards) data.cards = [];
+          if (!data.settings) data.settings = {};
+          
           // Check if remote data is newer than local
           const localData = localStorage.getItem(`dashboard-workspace-${authState.currentUser!.id}`);
           let shouldUpdate = true;
@@ -159,12 +168,12 @@ export default function App() {
 
   // Set initial tab if none selected
   useEffect(() => {
-    if (!currentTabId && workspace.tabs.length > 0) {
+    if (!currentTabId && workspace.tabs && workspace.tabs.length > 0) {
       setCurrentTab(workspace.tabs[0].id);
     }
   }, [currentTabId, workspace.tabs, setCurrentTab]);
 
-  const currentTab = workspace.tabs.find((tab) => tab.id === currentTabId);
+  const currentTab = workspace.tabs?.find((tab) => tab.id === currentTabId);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -308,12 +317,12 @@ export default function App() {
               </h1>
               <p className="text-muted-foreground">
                 У тебя{' '}
-                {workspace.cards.filter(
+                {(workspace.cards || []).filter(
                   (c) =>
-                    !workspace.tabs
-                      .find((t) => t.columns.some((col) => col.id === c.columnId))
-                      ?.columns.find((col) => col.id === c.columnId)
-                      ?.title.toLowerCase()
+                    !(workspace.tabs || [])
+                      .find((t) => (t.columns || []).some((col) => col.id === c.columnId))
+                      ?.columns?.find((col) => col.id === c.columnId)
+                      ?.title?.toLowerCase()
                       .includes('done')
                 ).length}{' '}
                 активных задач
