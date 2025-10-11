@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, Loader2 } from 'lucide-react';
 import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar';
 import { Button } from './components/ui/button';
 import { AppSidebar } from './components/AppSidebar';
@@ -15,8 +15,9 @@ import { LoginRegisterModal } from './components/LoginRegisterModal';
 import { EmptyState } from './components/EmptyState';
 import { Toaster } from './components/ui/sonner';
 import { useStore } from './store/useStore';
-import { database } from './config/firebase';
+import { database, auth } from './config/firebase';
 import { ref, onValue, set } from 'firebase/database';
+import { onAuthStateChanged } from 'firebase/auth';
 import type { Card } from './types';
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showOLXSearch, setShowOLXSearch] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Handle Google Sign-In
   const handleGoogleLogin = (googleUser: any) => {
@@ -58,6 +60,25 @@ export default function App() {
       }
     }
   };
+
+  // Check Firebase auth state on mount (prevents black screen flicker)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in
+        handleGoogleLogin({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+        });
+      }
+      // Auth check complete
+      setIsAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Auto-save workspace for current user (localStorage + Firebase sync)
   useEffect(() => {
@@ -202,6 +223,18 @@ export default function App() {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [currentTabId, currentTab]);
+
+  // Show loading screen while checking auth state
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show login/register modal if not authenticated
   if (!authState.isAuthenticated) {
