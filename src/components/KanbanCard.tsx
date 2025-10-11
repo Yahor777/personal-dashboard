@@ -61,7 +61,7 @@ export function KanbanCard({ card, onClick, isDragging = false }: KanbanCardProp
       <h4 className="mb-2 line-clamp-2">{card.title}</h4>
 
       {/* Tags */}
-      {card.tags.length > 0 && (
+      {card.tags && card.tags.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1">
           {card.tags.slice(0, 3).map((tag, index) => (
             <Badge key={index} variant="secondary" className="text-xs">

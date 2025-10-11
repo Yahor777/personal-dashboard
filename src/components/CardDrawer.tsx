@@ -25,11 +25,22 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
   const { workspace, updateCard, deleteCard, duplicateCard, completeCard, addImageToCard, removeImageFromCard, updateCardImage } = useStore();
   const { t } = useTranslation(workspace.settings.language);
   
-  const [title, setTitle] = useState(card.title);
-  const [description, setDescription] = useState(card.description);
-  const [priority, setPriority] = useState<Priority>(card.priority);
-  const [type, setType] = useState<CardType>(card.type);
-  const [tags, setTags] = useState(card.tags.join(', '));
+  // Ensure arrays exist with fallbacks
+  const safeCard = {
+    ...card,
+    tags: card.tags || [],
+    checklist: card.checklist || [],
+    comments: card.comments || [],
+    images: card.images || [],
+    attachments: card.attachments || [],
+    reminders: card.reminders || [],
+  };
+  
+  const [title, setTitle] = useState(safeCard.title);
+  const [description, setDescription] = useState(safeCard.description);
+  const [priority, setPriority] = useState<Priority>(safeCard.priority);
+  const [type, setType] = useState<CardType>(safeCard.type);
+  const [tags, setTags] = useState(safeCard.tags.join(', '));
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [newComment, setNewComment] = useState('');
   const [pomodoroMinutes, setPomodoroMinutes] = useState(25);
@@ -69,7 +80,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
         completed: false,
       };
       updateCard(card.id, {
-        checklist: [...card.checklist, newItem],
+        checklist: [...safeCard.checklist, newItem],
       });
       setNewChecklistItem('');
     }
@@ -77,7 +88,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
 
   const handleToggleChecklistItem = (itemId: string) => {
     updateCard(card.id, {
-      checklist: card.checklist.map((item) =>
+      checklist: safeCard.checklist.map((item) =>
         item.id === itemId ? { ...item, completed: !item.completed } : item
       ),
     });
@@ -85,7 +96,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
 
   const handleDeleteChecklistItem = (itemId: string) => {
     updateCard(card.id, {
-      checklist: card.checklist.filter((item) => item.id !== itemId),
+      checklist: safeCard.checklist.filter((item) => item.id !== itemId),
     });
   };
 
@@ -93,7 +104,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
     if (newComment.trim()) {
       updateCard(card.id, {
         comments: [
-          ...card.comments,
+          ...safeCard.comments,
           {
             id: `comment-${Date.now()}`,
             text: newComment.trim(),
@@ -270,7 +281,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
 
             <TabsContent value="images" className="space-y-4">
               <ImageGallery
-                images={card.images}
+                images={safeCard.images}
                 onAddImage={(image) => addImageToCard(card.id, image)}
                 onRemoveImage={(imageId) => removeImageFromCard(card.id, imageId)}
                 onUpdateImage={(imageId, updates) => updateCardImage(card.id, imageId, updates)}
@@ -292,7 +303,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
                 </Button>
               </div>
               <div className="space-y-2">
-                {card.checklist.map((item) => (
+                {safeCard.checklist.map((item) => (
                   <div key={item.id} className="flex items-center gap-2">
                     <Checkbox
                       checked={item.completed}
@@ -329,7 +340,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
                 </Button>
               </div>
               <div className="space-y-3">
-                {card.comments.map((comment) => (
+                {safeCard.comments.map((comment) => (
                   <div key={comment.id} className="rounded-lg bg-muted p-3">
                     <p>{comment.text}</p>
                     <p className="mt-1 text-muted-foreground">

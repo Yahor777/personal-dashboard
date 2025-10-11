@@ -58,6 +58,18 @@ export default function App() {
         if (!workspace.tabs) workspace.tabs = [];
         if (!workspace.cards) workspace.cards = [];
         if (!workspace.settings) workspace.settings = {};
+        
+        // Clean up cards data - ensure all arrays are initialized
+        workspace.cards = (workspace.cards || []).map((card: any) => ({
+          ...card,
+          tags: card.tags || [],
+          checklist: card.checklist || [],
+          comments: card.comments || [],
+          images: card.images || [],
+          attachments: card.attachments || [],
+          reminders: card.reminders || [],
+        }));
+        
         useStore.setState({ workspace });
       } catch (error) {
         console.error('Failed to load workspace:', error);
@@ -153,10 +165,25 @@ export default function App() {
           
           if (shouldUpdate) {
             console.log('Syncing workspace from Firebase...');
-            useStore.setState({ workspace: data });
+            
+            // Clean up cards data - ensure all arrays are initialized
+            const cleanedData = {
+              ...data,
+              cards: (data.cards || []).map((card: any) => ({
+                ...card,
+                tags: card.tags || [],
+                checklist: card.checklist || [],
+                comments: card.comments || [],
+                images: card.images || [],
+                attachments: card.attachments || [],
+                reminders: card.reminders || [],
+              })),
+            };
+            
+            useStore.setState({ workspace: cleanedData });
             localStorage.setItem(
               `dashboard-workspace-${authState.currentUser!.id}`,
-              JSON.stringify(data)
+              JSON.stringify(cleanedData)
             );
           }
         }
