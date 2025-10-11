@@ -52,7 +52,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <Label>{t('theme')}</Label>
                 <Select
                   value={workspace.settings.theme}
-                  onValueChange={(v) => handleThemeChange(v as Theme)}
+                  onValueChange={(v: string) => handleThemeChange(v as Theme)}
                 >
                   <SelectTrigger className="w-32">
                     <SelectValue />
@@ -73,7 +73,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 </div>
                 <Switch
                   checked={workspace.settings.highContrast}
-                  onCheckedChange={(checked) => updateSettings({ highContrast: checked })}
+                  onCheckedChange={(checked: boolean) => updateSettings({ highContrast: checked })}
                 />
               </div>
 
@@ -96,7 +96,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             <h3 className="mb-4">{t('language')}</h3>
             <Select
               value={workspace.settings.language}
-              onValueChange={(v) => updateSettings({ language: v as Language })}
+              onValueChange={(v: string) => updateSettings({ language: v as Language })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -138,7 +138,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <Label>Провайдер AI</Label>
                 <Select
                   value={workspace.settings.aiProvider || 'none'}
-                  onValueChange={(v) => {
+                  onValueChange={(v: string) => {
                     updateSettings({ aiProvider: v as any });
                     // Автоматически выбрать бесплатную модель для OpenRouter
                     if (v === 'openrouter' && !workspace.settings.aiModel) {
@@ -281,7 +281,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               </div>
               <Switch
                 checked={workspace.settings.notifications}
-                onCheckedChange={(checked) => updateSettings({ notifications: checked })}
+                onCheckedChange={(checked: boolean) => updateSettings({ notifications: checked })}
               />
             </div>
           </div>

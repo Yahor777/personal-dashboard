@@ -105,7 +105,7 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
                                 variant="ghost"
                                 size="sm"
                                 className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 p-0 opacity-0 group-hover:opacity-100"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
                               >
                                 •••
                               </Button>
@@ -202,7 +202,7 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
             </div>
             <div className="space-y-2">
               <Label htmlFor="tab-template">Шаблон</Label>
-              <Select value={newTabTemplate} onValueChange={(v) => setNewTabTemplate(v as TabTemplate)}>
+              <Select value={newTabTemplate} onValueChange={(v: string) => setNewTabTemplate(v as TabTemplate)}>
                 <SelectTrigger id="tab-template">
                   <SelectValue />
                 </SelectTrigger>
