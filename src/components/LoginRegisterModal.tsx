@@ -5,7 +5,7 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AlertCircle, Sparkles } from 'lucide-react';
-import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { signInWithRedirect, signInWithPopup, getRedirectResult } from 'firebase/auth';
 import { auth, googleProvider } from '../config/firebase';
 import { useEffect } from 'react';
 
@@ -61,7 +61,7 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
     checkRedirectResult();
   }, [onGoogleLogin]);
 
-  // Google Sign-In handler
+  // Google Sign-In handler with popup fallback
   const handleGoogleSignIn = async () => {
     setError('');
     setGoogleLoading(true);
@@ -72,10 +72,38 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
       console.log('Google Provider настроен:', !!googleProvider);
       console.log('Текущий URL:', window.location.href);
       
-      // Use redirect instead of popup to avoid COOP errors
-      await signInWithRedirect(auth, googleProvider);
-      console.log('✅ Редирект на Google начался...');
-      // Note: After redirect, the page will reload and result will be checked in useEffect
+      // Try popup first (works better if domains are configured)
+      try {
+        console.log('Попытка входа через popup...');
+        const result = await signInWithPopup(auth, googleProvider);
+        
+        if (result.user && onGoogleLogin) {
+          console.log('✅ Вход через popup успешен:', result.user.email);
+          onGoogleLogin({
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+          });
+        }
+        setGoogleLoading(false);
+        return;
+      } catch (popupError: any) {
+        console.log('Popup не сработал, пробуем redirect...', popupError.code);
+        
+        // If popup failed, try redirect
+        if (popupError.code === 'auth/popup-blocked' || 
+            popupError.code === 'auth/popup-closed-by-user' ||
+            popupError.code === 'auth/cancelled-popup-request') {
+          console.log('Переход на redirect метод...');
+          await signInWithRedirect(auth, googleProvider);
+          console.log('✅ Редирект на Google начался...');
+          return;
+        }
+        
+        // If it's an auth error, throw it
+        throw popupError;
+      }
     } catch (error: any) {
       console.error('❌ Google sign-in error:', error);
       console.error('Error code:', error.code);
