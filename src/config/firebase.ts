@@ -18,14 +18,24 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+// Initialize Analytics only if not blocked
+let analytics;
+try {
+  analytics = getAnalytics(app);
+} catch (error) {
+  console.log('Analytics blocked by browser extension (AdBlock/Privacy) - this is normal');
+}
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const database = getDatabase(app);
 
-// Optional: Force account selection every time
+// Configure Google Auth Provider
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  // Add these to fix auth issues
+  access_type: 'offline',
+  include_granted_scopes: 'true'
 });

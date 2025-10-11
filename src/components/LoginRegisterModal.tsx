@@ -28,9 +28,11 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
   // Check for redirect result on component mount
   useEffect(() => {
     const checkRedirectResult = async () => {
+      setGoogleLoading(true);
       try {
         const result = await getRedirectResult(auth);
         if (result && result.user && onGoogleLogin) {
+          console.log('Google Sign-In успешен:', result.user.email);
           onGoogleLogin({
             uid: result.user.uid,
             email: result.user.email,
@@ -40,7 +42,19 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
         }
       } catch (error: any) {
         console.error('Google redirect error:', error);
-        setError('Ошибка входа через Google. Попробуйте снова.');
+        
+        // Более детальные сообщения об ошибках
+        if (error.code === 'auth/popup-blocked') {
+          setError('Всплывающее окно заблокировано. Разрешите всплывающие окна для этого сайта.');
+        } else if (error.code === 'auth/network-request-failed') {
+          setError('Проблема с сетью. Проверьте подключение к интернету.');
+        } else if (error.code === 'auth/unauthorized-domain') {
+          setError('Домен не авторизован в Firebase. Добавьте yahor777.github.io в Firebase Console.');
+        } else {
+          setError('Ошибка входа через Google: ' + (error.message || 'Попробуйте снова'));
+        }
+      } finally {
+        setGoogleLoading(false);
       }
     };
 
@@ -53,13 +67,19 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
     setGoogleLoading(true);
 
     try {
+      console.log('Запуск Google Sign-In...');
       // Use redirect instead of popup to avoid COOP errors
       await signInWithRedirect(auth, googleProvider);
+      // Note: After redirect, the page will reload and result will be checked in useEffect
     } catch (error: any) {
       console.error('Google sign-in error:', error);
       
       if (error.code === 'auth/invalid-api-key' || error.code === 'auth/invalid-project-id') {
         setError('Firebase не настроен. Пожалуйста, настройте Firebase в консоли разработчика.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setError('Домен не авторизован. Добавьте yahor777.github.io в Firebase Console → Authentication → Settings → Authorized domains');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        setError('Google вход отключен. Включите Google Sign-In в Firebase Console → Authentication → Sign-in method');
       } else {
         setError('Ошибка входа через Google: ' + (error.message || 'Неизвестная ошибка'));
       }
