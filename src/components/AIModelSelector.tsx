@@ -63,6 +63,26 @@ export function AIModelSelector({ provider, currentModel, onSelectModel }: AIMod
   if (provider === 'openrouter') {
     return (
       <div className="space-y-3">
+        {/* Info banner */}
+        <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-sm">
+          <p className="font-semibold text-primary mb-1">🔑 Нужен API ключ OpenRouter</p>
+          <p className="text-muted-foreground text-xs">
+            1. Зайдите на{' '}
+            <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" className="text-primary hover:underline">
+              openrouter.ai/keys
+            </a>
+          </p>
+          <p className="text-muted-foreground text-xs">
+            2. Создайте бесплатный аккаунт
+          </p>
+          <p className="text-muted-foreground text-xs">
+            3. Скопируйте API ключ (начинается с sk-or-v1-)
+          </p>
+          <p className="text-muted-foreground text-xs">
+            4. Вставьте в поле выше
+          </p>
+        </div>
+
         <div>
           <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/10 text-green-600">

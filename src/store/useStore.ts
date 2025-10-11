@@ -623,8 +623,20 @@ export const useStore = create<Store>()(
         users.push({ ...newUser, password: hashedPassword });
         localStorage.setItem('dashboard-users', JSON.stringify(users));
 
+        // Create user workspace
+        const userWorkspace = {
+          ...defaultWorkspace,
+          settings: {
+            ...defaultWorkspace.settings,
+            userName: name,
+          },
+        };
+        localStorage.setItem(`dashboard-workspace-${newUser.id}`, JSON.stringify(userWorkspace));
+
         // Auto-login
         set({
+          workspace: userWorkspace,
+          currentTabId: userWorkspace.tabs[0]?.id || null,
           authState: {
             isAuthenticated: true,
             currentUser: newUser,
@@ -643,7 +655,19 @@ export const useStore = create<Store>()(
           return false;
         }
 
+        // Load user's workspace
+        const userWorkspaceData = localStorage.getItem(`dashboard-workspace-${user.id}`);
+        const userWorkspace = userWorkspaceData ? JSON.parse(userWorkspaceData) : {
+          ...defaultWorkspace,
+          settings: {
+            ...defaultWorkspace.settings,
+            userName: user.name,
+          },
+        };
+
         set({
+          workspace: userWorkspace,
+          currentTabId: userWorkspace.tabs[0]?.id || null,
           authState: {
             isAuthenticated: true,
             currentUser: {
@@ -659,7 +683,18 @@ export const useStore = create<Store>()(
       },
 
       logout: () => {
+        // Save current workspace before logout
+        const state = get();
+        if (state.authState.currentUser) {
+          localStorage.setItem(
+            `dashboard-workspace-${state.authState.currentUser.id}`,
+            JSON.stringify(state.workspace)
+          );
+        }
+
         set({
+          workspace: defaultWorkspace,
+          currentTabId: null,
           authState: {
             isAuthenticated: false,
             currentUser: null,

@@ -46,6 +46,8 @@ export class AIService {
       };
     }
 
+    const model = this.config.model || 'google/gemma-7b-it:free';
+
     try {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -56,7 +58,7 @@ export class AIService {
           'X-Title': 'Personal Dashboard',
         },
         body: JSON.stringify({
-          model: this.config.model || 'openai/gpt-3.5-turbo',
+          model: model,
           messages: messages,
           temperature: 0.7,
           max_tokens: 2000,
@@ -64,10 +66,29 @@ export class AIService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('OpenRouter error:', errorText);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('OpenRouter error:', errorData);
+        
+        // Более детальная ошибка
+        if (response.status === 401) {
+          return {
+            content: `Неверный API ключ OpenRouter. Проверьте ключ в настройках или создайте новый на openrouter.ai`,
+            error: 'INVALID_API_KEY',
+          };
+        } else if (response.status === 402) {
+          return {
+            content: `Недостаточно кредитов на OpenRouter. Пополните баланс или используйте бесплатную модель (с :free в конце)`,
+            error: 'INSUFFICIENT_CREDITS',
+          };
+        } else if (response.status === 429) {
+          return {
+            content: `Слишком много запросов. Подождите немного и попробуйте снова.`,
+            error: 'RATE_LIMIT',
+          };
+        }
+        
         return {
-          content: `Ошибка OpenRouter: ${response.status}. Проверьте API ключ.`,
+          content: `Ошибка OpenRouter (${response.status}): ${errorData.error?.message || 'Неизвестная ошибка'}. Модель: ${model}`,
           error: 'API_ERROR',
         };
       }

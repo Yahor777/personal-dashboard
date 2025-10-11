@@ -24,6 +24,19 @@ export default function App() {
   const [showAI, setShowAI] = useState(false);
   const [showOLXSearch, setShowOLXSearch] = useState(false);
 
+  // Auto-save workspace for current user
+  useEffect(() => {
+    if (authState.currentUser && authState.isAuthenticated) {
+      const saveTimer = setTimeout(() => {
+        localStorage.setItem(
+          `dashboard-workspace-${authState.currentUser!.id}`,
+          JSON.stringify(workspace)
+        );
+      }, 500);
+      return () => clearTimeout(saveTimer);
+    }
+  }, [workspace, authState]);
+
   // Set initial theme
   useEffect(() => {
     const root = document.documentElement;
@@ -98,11 +111,41 @@ export default function App() {
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden bg-background">
         <AppSidebar
-          onOpenSettings={() => setShowSettings(true)}
-          onOpenImportExport={() => setShowImportExport(true)}
-          onOpenAnalytics={() => setShowAnalytics(true)}
-          onOpenAI={() => setShowAI(true)}
-          onOpenOLXSearch={() => setShowOLXSearch(true)}
+          onOpenSettings={() => {
+            setShowSettings(true);
+            setShowImportExport(false);
+            setShowAnalytics(false);
+            setShowAI(false);
+            setShowOLXSearch(false);
+          }}
+          onOpenImportExport={() => {
+            setShowImportExport(true);
+            setShowSettings(false);
+            setShowAnalytics(false);
+            setShowAI(false);
+            setShowOLXSearch(false);
+          }}
+          onOpenAnalytics={() => {
+            setShowAnalytics(true);
+            setShowSettings(false);
+            setShowImportExport(false);
+            setShowAI(false);
+            setShowOLXSearch(false);
+          }}
+          onOpenAI={() => {
+            setShowAI(true);
+            setShowSettings(false);
+            setShowImportExport(false);
+            setShowAnalytics(false);
+            setShowOLXSearch(false);
+          }}
+          onOpenOLXSearch={() => {
+            setShowOLXSearch(true);
+            setShowSettings(false);
+            setShowImportExport(false);
+            setShowAnalytics(false);
+            setShowAI(false);
+          }}
         />
 
         <main className="flex flex-1 flex-col overflow-hidden">
