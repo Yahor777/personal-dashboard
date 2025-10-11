@@ -26,6 +26,37 @@ export default function App() {
   const [showAI, setShowAI] = useState(false);
   const [showOLXSearch, setShowOLXSearch] = useState(false);
 
+  // Handle Google Sign-In
+  const handleGoogleLogin = (googleUser: any) => {
+    // Create user from Google data
+    const user = {
+      id: googleUser.uid,
+      email: googleUser.email || 'google-user@gmail.com',
+      name: googleUser.displayName || 'Google User',
+      avatar: googleUser.photoURL,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Set authenticated state
+    useStore.setState({
+      authState: {
+        isAuthenticated: true,
+        currentUser: user,
+      },
+    });
+
+    // Load user's workspace from localStorage
+    const savedWorkspace = localStorage.getItem(`dashboard-workspace-${user.id}`);
+    if (savedWorkspace) {
+      try {
+        const workspace = JSON.parse(savedWorkspace);
+        useStore.setState({ workspace });
+      } catch (error) {
+        console.error('Failed to load workspace:', error);
+      }
+    }
+  };
+
   // Auto-save workspace for current user
   useEffect(() => {
     if (authState.currentUser && authState.isAuthenticated) {
@@ -124,7 +155,11 @@ export default function App() {
   if (!authState.isAuthenticated) {
     return (
       <>
-        <LoginRegisterModal onLogin={login} onRegister={register} />
+        <LoginRegisterModal 
+          onLogin={login} 
+          onRegister={register}
+          onGoogleLogin={handleGoogleLogin}
+        />
         <Toaster />
       </>
     );

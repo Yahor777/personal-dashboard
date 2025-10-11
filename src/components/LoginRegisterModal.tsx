@@ -5,13 +5,17 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AlertCircle, Sparkles } from 'lucide-react';
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { auth, googleProvider } from '../config/firebase';
+import { useEffect } from 'react';
 
 interface LoginRegisterModalProps {
   onLogin: (email: string, password: string) => boolean;
   onRegister: (name: string, email: string, password: string) => boolean;
+  onGoogleLogin?: (user: any) => void;
 }
 
-export function LoginRegisterModal({ onLogin, onRegister }: LoginRegisterModalProps) {
+export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: LoginRegisterModalProps) {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [registerName, setRegisterName] = useState('');
@@ -19,6 +23,68 @@ export function LoginRegisterModal({ onLogin, onRegister }: LoginRegisterModalPr
   const [registerPassword, setRegisterPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Check for redirect result on component mount
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user && onGoogleLogin) {
+          onGoogleLogin({
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+          });
+        }
+      } catch (error: any) {
+        console.error('Google redirect error:', error);
+        setError('Ошибка входа через Google. Попробуйте снова.');
+      }
+    };
+
+    checkRedirectResult();
+  }, [onGoogleLogin]);
+
+  // Google Sign-In handler
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
+
+    try {
+      // Try popup first (works better on desktop)
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      if (result.user && onGoogleLogin) {
+        onGoogleLogin({
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName,
+          photoURL: result.user.photoURL,
+        });
+      }
+    } catch (error: any) {
+      console.error('Google sign-in error:', error);
+      
+      // If popup blocked, try redirect (works better on mobile)
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+        } catch (redirectError: any) {
+          console.error('Google redirect error:', redirectError);
+          setError('Ошибка входа через Google. Проверьте настройки браузера.');
+          setGoogleLoading(false);
+        }
+      } else if (error.code === 'auth/invalid-api-key' || error.code === 'auth/invalid-project-id') {
+        setError('Firebase не настроен. Пожалуйста, настройте Firebase в консоли разработчика.');
+        setGoogleLoading(false);
+      } else {
+        setError('Ошибка входа через Google: ' + (error.message || 'Неизвестная ошибка'));
+        setGoogleLoading(false);
+      }
+    }
+  };
 
   // Email validation
   const isValidEmail = (email: string): boolean => {
@@ -103,7 +169,49 @@ export function LoginRegisterModal({ onLogin, onRegister }: LoginRegisterModalPr
               </CardDescription>
             </CardHeader>
 
-            <TabsList className="grid w-full grid-cols-2">
+            {/* Google Sign-In Button */}
+            <CardContent className="pt-6">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+              >
+                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="currentColor"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+                {googleLoading ? 'Вход через Google...' : 'Войти через Google'}
+              </Button>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Или используйте email
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+
+            <TabsList className="grid w-full grid-cols-2 mx-6">
               <TabsTrigger value="login">Вход</TabsTrigger>
               <TabsTrigger value="register">Регистрация</TabsTrigger>
             </TabsList>
@@ -216,9 +324,14 @@ export function LoginRegisterModal({ onLogin, onRegister }: LoginRegisterModalPr
           </Card>
         </Tabs>
 
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Данные хранятся локально в вашем браузере
-        </p>
+        <div className="mt-4 space-y-2">
+          <p className="text-center text-sm text-muted-foreground">
+            Данные хранятся локально в вашем браузере
+          </p>
+          <p className="text-center text-xs text-muted-foreground">
+            🔒 Для Google входа требуется настройка Firebase
+          </p>
+        </div>
       </div>
     </div>
   );
