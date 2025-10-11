@@ -176,6 +176,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
         <div className="flex items-center gap-2">
           <Package className="size-5 text-primary" />
           <h2>OLX Поиск компонентов ПК</h2>
+          <Badge variant="outline" className="text-xs">Ctrl+K</Badge>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="size-5" />

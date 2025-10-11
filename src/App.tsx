@@ -82,6 +82,27 @@ export default function App() {
           });
         }
       }
+
+      // Ctrl+K or Cmd+K - Open OLX search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowOLXSearch(true);
+        setShowSettings(false);
+        setShowImportExport(false);
+        setShowAnalytics(false);
+        setShowAI(false);
+      }
+
+      // Ctrl+/ or Cmd+/ - Open AI assistant
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        setShowAI(true);
+        setShowSettings(false);
+        setShowImportExport(false);
+        setShowAnalytics(false);
+        setShowOLXSearch(false);
+      }
+
       // Escape - Close panels
       if (e.key === 'Escape') {
         setSelectedCard(null);

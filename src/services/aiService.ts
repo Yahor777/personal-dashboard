@@ -16,12 +16,60 @@ interface AIResponse {
 
 export class AIService {
   private config: AIConfig;
+  private timeout: number = 30000; // 30 seconds timeout
+  private maxRetries: number = 2;
 
   constructor(config: AIConfig) {
     this.config = config;
   }
 
   async chat(messages: Array<{ role: string; content: string }>): Promise<AIResponse> {
+    // Retry logic with exponential backoff
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await this.chatWithTimeout(messages);
+      } catch (error) {
+        // Don't retry on certain errors
+        if (error instanceof Error) {
+          const errorMessage = error.message.toLowerCase();
+          if (
+            errorMessage.includes('api_key') ||
+            errorMessage.includes('credits') ||
+            errorMessage.includes('не настроен')
+          ) {
+            throw error;
+          }
+        }
+
+        // Last attempt - throw error
+        if (attempt === this.maxRetries) {
+          throw error;
+        }
+
+        // Wait before retry (exponential backoff)
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(`Retrying request (attempt ${attempt + 2}/${this.maxRetries + 1})...`);
+      }
+    }
+
+    // Fallback return (should never reach here)
+    return {
+      content: 'Произошла неизвестная ошибка',
+      error: 'UNKNOWN_ERROR',
+    };
+  }
+
+  private async chatWithTimeout(messages: Array<{ role: string; content: string }>): Promise<AIResponse> {
+    return Promise.race([
+      this.performChat(messages),
+      new Promise<AIResponse>((_, reject) =>
+        setTimeout(() => reject(new Error('Превышено время ожидания ответа (30 сек). Попробуйте снова или выберите другую модель.')), this.timeout)
+      ),
+    ]);
+  }
+
+  private async performChat(messages: Array<{ role: string; content: string }>): Promise<AIResponse> {
     switch (this.config.provider) {
       case 'openrouter':
         return this.callOpenRouter(messages);

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, Trash2, Plus, Zap } from 'lucide-react';
+import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
@@ -7,6 +7,11 @@ import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { AIService } from '../services/aiService';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
+import { toast } from 'sonner';
 import type { AIMessage } from '../types';
 
 interface AIAssistantPanelProps {
@@ -30,6 +35,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
   const { t } = useTranslation(workspace.settings.language);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const currentConversation = aiConversations.find(c => c.id === currentConversationId);
@@ -86,9 +92,20 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
       });
     } catch (error) {
       console.error('AI error:', error);
+      
+      // Determine error message
+      let errorMessage = 'Извините, произошла ошибка при обращении к AI.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      // Add error message
       useStore.getState().addAIMessage(convId!, {
         role: 'assistant',
-        content: 'Извините, произошла ошибка. Проверьте настройки AI или попробуйте позже.',
+        content: `⚠️ ${errorMessage}\n\n💡 Советы:\n• Проверьте настройки AI в Settings\n• Убедитесь, что API ключ действителен\n• Проверьте подключение к интернету\n• Попробуйте другую модель`,
       });
     } finally {
       setIsLoading(false);
@@ -104,6 +121,21 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     setCurrentConversation(newId);
   };
 
+  const handleCopyMessage = async (messageId: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+      toast.success('Сообщение скопировано');
+      
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedMessageId(null);
+      }, 2000);
+    } catch (error) {
+      toast.error('Не удалось скопировать');
+    }
+  };
+
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-3xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
@@ -111,6 +143,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
         <div className="flex items-center gap-2">
           <Sparkles className="size-5 text-primary" />
           <h2>{t('aiAssistant')}</h2>
+          <Badge variant="outline" className="text-xs">Ctrl+/</Badge>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleNewChat}>
@@ -228,13 +261,57 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                             : 'bg-muted'
                         }`}
                       >
-                        {message.role === 'assistant' && (
-                          <Badge variant="secondary" className="mb-2">
-                            <Sparkles className="mr-1 size-3" />
-                            AI
-                          </Badge>
-                        )}
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            {message.role === 'assistant' && (
+                              <Badge variant="secondary" className="mb-2">
+                                <Sparkles className="mr-1 size-3" />
+                                AI
+                              </Badge>
+                            )}
+                            {message.role === 'assistant' ? (
+                              <div className="prose prose-sm dark:prose-invert max-w-none">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeHighlight]}
+                                  components={{
+                                    // Custom styling for code blocks
+                                    code: ({ className, children, ...props }: any) => {
+                                      const match = /language-(\w+)/.exec(className || '');
+                                      return !match ? (
+                                        <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+                                          {children}
+                                        </code>
+                                      ) : (
+                                        <code className={className} {...props}>
+                                          {children}
+                                        </code>
+                                      );
+                                    },
+                                  }}
+                                >
+                                  {message.content}
+                                </ReactMarkdown>
+                              </div>
+                            ) : (
+                              <p className="whitespace-pre-wrap">{message.content}</p>
+                            )}
+                          </div>
+                          {message.role === 'assistant' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0"
+                              onClick={() => handleCopyMessage(message.id, message.content)}
+                            >
+                              {copiedMessageId === message.id ? (
+                                <Check className="size-3 text-green-600" />
+                              ) : (
+                                <Copy className="size-3" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
                         <p
                           className={`mt-2 ${
                             message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'

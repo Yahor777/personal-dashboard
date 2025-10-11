@@ -18,40 +18,72 @@ export function LoginRegisterModal({ onLogin, onRegister }: LoginRegisterModalPr
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Email validation
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     if (!loginEmail || !loginPassword) {
       setError('Заполните все поля');
+      setIsLoading(false);
       return;
     }
 
-    const success = onLogin(loginEmail, loginPassword);
-    if (!success) {
-      setError('Неверный email или пароль');
+    if (!isValidEmail(loginEmail)) {
+      setError('Введите корректный email адрес');
+      setIsLoading(false);
+      return;
     }
+
+    // Simulate async operation
+    setTimeout(() => {
+      const success = onLogin(loginEmail, loginPassword);
+      if (!success) {
+        setError('Неверный email или пароль');
+      }
+      setIsLoading(false);
+    }, 300);
   };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     if (!registerName || !registerEmail || !registerPassword) {
       setError('Заполните все поля');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isValidEmail(registerEmail)) {
+      setError('Введите корректный email адрес');
+      setIsLoading(false);
       return;
     }
 
     if (registerPassword.length < 6) {
       setError('Пароль должен быть минимум 6 символов');
+      setIsLoading(false);
       return;
     }
 
-    const success = onRegister(registerName, registerEmail, registerPassword);
-    if (!success) {
-      setError('Пользователь с таким email уже существует');
-    }
+    // Simulate async operation
+    setTimeout(() => {
+      const success = onRegister(registerName, registerEmail, registerPassword);
+      if (!success) {
+        setError('Пользователь с таким email уже существует');
+      }
+      setIsLoading(false);
+    }, 300);
   };
 
   return (
@@ -111,8 +143,12 @@ export function LoginRegisterModal({ onLogin, onRegister }: LoginRegisterModalPr
                   )}
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full">
-                    Войти
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Вход...' : 'Войти'}
                   </Button>
                 </CardFooter>
               </form>
@@ -167,8 +203,12 @@ export function LoginRegisterModal({ onLogin, onRegister }: LoginRegisterModalPr
                   )}
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full">
-                    Зарегистрироваться
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
                   </Button>
                 </CardFooter>
               </form>
