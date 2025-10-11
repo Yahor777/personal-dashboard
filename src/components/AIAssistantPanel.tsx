@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check } from 'lucide-react';
+import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check, Settings2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AIService } from '../services/aiService';
+import { FREE_AI_MODELS } from '../data/aiModels';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -140,10 +142,35 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-3xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Sparkles className="size-5 text-primary" />
           <h2>{t('aiAssistant')}</h2>
           <Badge variant="outline" className="text-xs">Ctrl+/</Badge>
+          
+          {/* Model Selector */}
+          {workspace.settings.aiProvider === 'openrouter' && (
+            <Select
+              value={workspace.settings.aiModel || FREE_AI_MODELS[0].model}
+              onValueChange={(model: string) => {
+                useStore.getState().updateSettings({ aiModel: model });
+                toast.success('Модель изменена');
+              }}
+            >
+              <SelectTrigger className="w-[220px] h-8 text-xs">
+                <SelectValue placeholder="Выберите модель" />
+              </SelectTrigger>
+              <SelectContent>
+                {FREE_AI_MODELS.map((model) => (
+                  <SelectItem key={model.model} value={model.model} className="text-xs">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{model.name}</span>
+                      <span className="text-muted-foreground text-[10px]">{model.speed}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleNewChat}>

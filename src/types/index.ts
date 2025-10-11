@@ -1,6 +1,6 @@
 // Core Types for MySpaceHub
 
-export type CardType = 'task' | 'flashcard' | 'recipe' | 'note' | 'pc-component';
+export type CardType = 'task' | 'flashcard' | 'recipe' | 'note' | 'pc-component' | 'pc-build';
 export type Priority = 'low' | 'medium' | 'high';
 export type Language = 'ru' | 'pl' | 'en';
 export type Theme = 'light' | 'dark' | 'neon' | 'minimal';
