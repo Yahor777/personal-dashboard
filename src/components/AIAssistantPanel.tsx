@@ -373,8 +373,9 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
           <div className="border-t border-border p-4">
             <div className="flex gap-2">
               <Button 
-                variant="outline" 
+                variant="default"
                 size="icon"
+                className="shrink-0 bg-primary/20 hover:bg-primary/30 text-primary border-2 border-primary/50"
                 onClick={() => {
                   toast.info('📎 Загрузка файлов', {
                     description: 'Бесплатные модели не поддерживают файлы/изображения. Используйте платные модели (GPT-4, Claude) для работы с файлами.',
@@ -383,7 +384,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 }}
                 title="Прикрепить файл (доступно в платных моделях)"
               >
-                <Paperclip className="size-4" />
+                <Paperclip className="size-5" />
               </Button>
               <Input
                 value={input}

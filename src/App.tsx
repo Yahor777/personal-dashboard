@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { SidebarProvider } from './components/ui/sidebar';
+import { Menu } from 'lucide-react';
+import { SidebarProvider, useSidebar } from './components/ui/sidebar';
+import { Button } from './components/ui/button';
 import { AppSidebar } from './components/AppSidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { CardDrawer } from './components/CardDrawer';
@@ -170,6 +172,24 @@ export default function App() {
         />
 
         <main className="flex flex-1 flex-col overflow-hidden">
+          {/* Mobile menu button */}
+          <div className="md:hidden flex items-center gap-2 border-b border-border bg-background px-4 py-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const sidebar = document.querySelector('[data-sidebar]');
+                if (sidebar) {
+                  const isExpanded = sidebar.getAttribute('data-state') === 'expanded';
+                  sidebar.setAttribute('data-state', isExpanded ? 'collapsed' : 'expanded');
+                }
+              }}
+            >
+              <Menu className="size-5" />
+            </Button>
+            <h2 className="flex-1 font-semibold">{workspace.name}</h2>
+          </div>
+
           {/* Welcome Header */}
           {workspace.settings.userName && (
             <div className="border-b border-border bg-gradient-to-r from-primary/5 to-accent/20 px-6 py-4">
@@ -192,7 +212,18 @@ export default function App() {
           )}
 
           {currentTab ? (
-            <KanbanBoard tabId={currentTab.id} onCardClick={setSelectedCard} />
+            <KanbanBoard 
+              tabId={currentTab.id} 
+              onCardClick={(card) => {
+                setSelectedCard(card);
+                // Auto-close all panels when opening a card
+                setShowSettings(false);
+                setShowImportExport(false);
+                setShowAnalytics(false);
+                setShowAI(false);
+                setShowOLXSearch(false);
+              }} 
+            />
           ) : (
             <EmptyState
               title="Нет вкладок"
