@@ -343,36 +343,34 @@ export default function App() {
 
         <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
           {/* Mobile menu button - fixed and always visible */}
-          <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center gap-2 border-b border-border bg-background px-4 py-3 shadow-md">
-            <SidebarTrigger className="hover:bg-accent rounded-md p-2 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground">
+          <div className="md:hidden fixed top-0 left-0 right-0 z-[100] flex items-center gap-2 border-b border-border bg-background px-4 py-3 shadow-md">
+            <SidebarTrigger className="hover:bg-accent rounded-md p-2 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground shadow-lg">
               <Menu className="size-6" />
             </SidebarTrigger>
-            <h2 className="flex-1 font-semibold text-lg">{workspace.name}</h2>
+            <h2 className="flex-1 font-semibold text-base">{workspace.name}</h2>
           </div>
 
           {/* Mobile spacing for fixed header */}
           <div className="md:hidden h-[60px]" />
 
-          {/* Welcome Header */}
-          {workspace.settings.userName && (
-            <div className="border-b border-border bg-gradient-to-r from-primary/5 to-accent/20 px-4 md:px-6 py-3 md:py-4 relative z-10">
-              <h1 className="text-base md:text-lg font-semibold text-foreground">
-                Привет, {workspace.settings.userName} 👋
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                У тебя{' '}
-                {(workspace.cards || []).filter(
-                  (c) =>
-                    !(workspace.tabs || [])
-                      .find((t) => (t.columns || []).some((col) => col.id === c.columnId))
-                      ?.columns?.find((col) => col.id === c.columnId)
-                      ?.title?.toLowerCase()
-                      .includes('done')
-                ).length}{' '}
-                активных задач
-              </p>
-            </div>
-          )}
+          {/* Welcome Header - ALWAYS VISIBLE */}
+          <div className="border-b border-border bg-gradient-to-r from-primary/10 to-accent/30 px-4 md:px-6 py-4 md:py-5">
+            <h1 className="text-lg md:text-xl font-bold text-foreground">
+              Привет{workspace.settings.userName ? `, ${workspace.settings.userName}` : ''} 👋
+            </h1>
+            <p className="text-sm md:text-base text-foreground/80 mt-1">
+              У тебя{' '}
+              {(workspace.cards || []).filter(
+                (c) =>
+                  !(workspace.tabs || [])
+                    .find((t) => (t.columns || []).some((col) => col.id === c.columnId))
+                    ?.columns?.find((col) => col.id === c.columnId)
+                    ?.title?.toLowerCase()
+                    .includes('done')
+              ).length}{' '}
+              активных задач
+            </p>
+          </div>
 
           {currentTab ? (
             <KanbanBoard 

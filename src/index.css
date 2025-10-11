@@ -3948,8 +3948,8 @@ html {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     position: fixed;
-    z-index: 1000;
-    top: 0;
+    z-index: 90;
+    top: 60px; /* Below mobile header */
     left: 0;
     bottom: 0;
     width: 280px;
@@ -3961,12 +3961,16 @@ html {
   }
 
   /* Add overlay when sidebar is open */
-  [data-sidebar][data-state="expanded"]::before {
+  [data-sidebar][data-state="expanded"]::after {
     content: '';
     position: fixed;
-    inset: 0;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: -1;
+    pointer-events: none;
   }
 
   /* Panels should be full width on mobile */
