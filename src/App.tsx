@@ -15,6 +15,8 @@ import { LoginRegisterModal } from './components/LoginRegisterModal';
 import { EmptyState } from './components/EmptyState';
 import { Toaster } from './components/ui/sonner';
 import { useStore } from './store/useStore';
+import { database } from './config/firebase';
+import { ref, onValue, set } from 'firebase/database';
 import type { Card } from './types';
 
 export default function App() {
@@ -57,18 +59,68 @@ export default function App() {
     }
   };
 
-  // Auto-save workspace for current user
+  // Auto-save workspace for current user (localStorage + Firebase sync)
   useEffect(() => {
     if (authState.currentUser && authState.isAuthenticated) {
       const saveTimer = setTimeout(() => {
+        // Save to localStorage (offline backup)
         localStorage.setItem(
           `dashboard-workspace-${authState.currentUser!.id}`,
           JSON.stringify(workspace)
         );
+        
+        // Sync to Firebase (cross-device sync)
+        const userWorkspaceRef = ref(database, `workspaces/${authState.currentUser!.id}`);
+        set(userWorkspaceRef, {
+          ...workspace,
+          lastModified: new Date().toISOString(),
+        }).catch((error) => {
+          console.error('Failed to sync to Firebase:', error);
+        });
       }, 500);
       return () => clearTimeout(saveTimer);
     }
   }, [workspace, authState]);
+
+  // Listen for Firebase updates (real-time sync from other devices)
+  useEffect(() => {
+    if (authState.currentUser && authState.isAuthenticated) {
+      const userWorkspaceRef = ref(database, `workspaces/${authState.currentUser!.id}`);
+      
+      const unsubscribe = onValue(userWorkspaceRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.lastModified) {
+          // Check if remote data is newer than local
+          const localData = localStorage.getItem(`dashboard-workspace-${authState.currentUser!.id}`);
+          let shouldUpdate = true;
+          
+          if (localData) {
+            try {
+              const local = JSON.parse(localData);
+              const localTime = new Date(local.lastModified || 0).getTime();
+              const remoteTime = new Date(data.lastModified).getTime();
+              
+              // Only update if remote is newer (avoid sync loops)
+              shouldUpdate = remoteTime > localTime;
+            } catch (error) {
+              console.error('Failed to parse local data:', error);
+            }
+          }
+          
+          if (shouldUpdate) {
+            console.log('Syncing workspace from Firebase...');
+            useStore.setState({ workspace: data });
+            localStorage.setItem(
+              `dashboard-workspace-${authState.currentUser!.id}`,
+              JSON.stringify(data)
+            );
+          }
+        }
+      });
+      
+      return () => unsubscribe();
+    }
+  }, [authState]);
 
   // Set initial theme
   useEffect(() => {
@@ -209,13 +261,8 @@ export default function App() {
         <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2 border-b border-border bg-background px-4 py-3">
-            <SidebarTrigger>
-              <Button
-                variant="ghost"
-                size="icon"
-              >
-                <Menu className="size-5" />
-              </Button>
+            <SidebarTrigger className="p-2">
+              <Menu className="size-5" />
             </SidebarTrigger>
             <h2 className="flex-1 font-semibold">{workspace.name}</h2>
           </div>

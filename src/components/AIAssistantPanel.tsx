@@ -501,11 +501,12 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
             )}
 
             <div className="flex gap-2">
-              <Button 
-                variant="default"
-                size="icon"
-                className="shrink-0 bg-primary/20 hover:bg-primary/30 text-primary border-2 border-primary/50"
-                onClick={() => {
+              <button
+                type="button"
+                className="shrink-0 flex items-center justify-center size-10 rounded-md bg-primary/20 hover:bg-primary/30 text-primary border-2 border-primary/50 transition-colors disabled:opacity-50"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   if (supportsFiles) {
                     fileInputRef.current?.click();
                   } else {
@@ -518,9 +519,10 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 title={supportsFiles 
                   ? 'Прикрепить файл (поддерживается текущей моделью)' 
                   : 'Прикрепить файл (недоступно для текущей модели)'}
+                disabled={isLoading}
               >
                 <Paperclip className="size-5" />
-              </Button>
+              </button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
