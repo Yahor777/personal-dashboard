@@ -5,7 +5,7 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AlertCircle, Sparkles } from 'lucide-react';
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, googleProvider } from '../config/firebase';
 import { useEffect } from 'react';
 
@@ -53,36 +53,17 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
     setGoogleLoading(true);
 
     try {
-      // Try popup first (works better on desktop)
-      const result = await signInWithPopup(auth, googleProvider);
-      
-      if (result.user && onGoogleLogin) {
-        onGoogleLogin({
-          uid: result.user.uid,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-        });
-      }
+      // Use redirect instead of popup to avoid COOP errors
+      await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
       console.error('Google sign-in error:', error);
       
-      // If popup blocked, try redirect (works better on mobile)
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-        try {
-          await signInWithRedirect(auth, googleProvider);
-        } catch (redirectError: any) {
-          console.error('Google redirect error:', redirectError);
-          setError('Ошибка входа через Google. Проверьте настройки браузера.');
-          setGoogleLoading(false);
-        }
-      } else if (error.code === 'auth/invalid-api-key' || error.code === 'auth/invalid-project-id') {
+      if (error.code === 'auth/invalid-api-key' || error.code === 'auth/invalid-project-id') {
         setError('Firebase не настроен. Пожалуйста, настройте Firebase в консоли разработчика.');
-        setGoogleLoading(false);
       } else {
         setError('Ошибка входа через Google: ' + (error.message || 'Неизвестная ошибка'));
-        setGoogleLoading(false);
       }
+      setGoogleLoading(false);
     }
   };
 

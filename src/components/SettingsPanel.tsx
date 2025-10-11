@@ -1,4 +1,4 @@
-import { X, Save } from 'lucide-react';
+import { X, Save, LogOut } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
@@ -9,6 +9,8 @@ import { Switch } from './ui/switch';
 import { Separator } from './ui/separator';
 import { AIModelSelector } from './AIModelSelector';
 import { toast } from 'sonner';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase';
 import type { Language, Theme } from '../types';
 
 interface SettingsPanelProps {
@@ -16,7 +18,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
-  const { workspace, updateSettings, resetWorkspace } = useStore();
+  const { workspace, updateSettings, resetWorkspace, authState } = useStore();
   const { t } = useTranslation(workspace.settings.language);
 
   const handleThemeChange = (theme: Theme) => {
@@ -28,6 +30,26 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     if (confirm('Сбросить все данные? Это действие нельзя отменить.')) {
       resetWorkspace();
       onClose();
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      
+      // Reset auth state
+      useStore.setState({
+        authState: {
+          isAuthenticated: false,
+          currentUser: null,
+        },
+      });
+      
+      toast.success('Вы вышли из аккаунта');
+      onClose();
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      toast.error('Ошибка выхода: ' + error.message);
     }
   };
 
@@ -312,6 +334,43 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </div>
 
           <Separator />
+
+          {/* Account */}
+          {authState.isAuthenticated && authState.currentUser && (
+            <>
+              <div>
+                <h3 className="mb-4">Аккаунт</h3>
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-border p-4">
+                    <div className="flex items-center gap-3">
+                      {authState.currentUser.avatar && (
+                        <img 
+                          src={authState.currentUser.avatar} 
+                          alt={authState.currentUser.name}
+                          className="size-12 rounded-full"
+                        />
+                      )}
+                      <div>
+                        <p className="font-medium">{authState.currentUser.name}</p>
+                        <p className="text-sm text-muted-foreground">{authState.currentUser.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={handleLogout} 
+                    className="w-full"
+                  >
+                    <LogOut className="mr-2 size-4" />
+                    Выйти из аккаунта
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+            </>
+          )}
 
           {/* Danger Zone */}
           <div>
