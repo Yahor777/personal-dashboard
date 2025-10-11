@@ -198,10 +198,10 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
         </div>
 
         {/* Chat Area */}
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col overflow-hidden">
           {/* Quick Actions */}
           {!currentConversation || currentConversation.messages.length === 0 ? (
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto">
               <h3 className="mb-4">Быстрые действия</h3>
               <div className="grid grid-cols-2 gap-3">
                 {quickActions.map((action, index) => (
@@ -247,8 +247,9 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
           ) : (
             <>
               {/* Messages */}
-              <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-                <div className="space-y-4">
+              <div className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <div className="p-4 space-y-4" ref={scrollRef}>
                   {currentConversation.messages.map((message) => (
                     <div
                       key={message.id}
@@ -337,6 +338,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                   )}
                 </div>
               </ScrollArea>
+              </div>
             </>
           )}
 
