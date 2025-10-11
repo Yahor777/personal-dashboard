@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check, Settings2 } from 'lucide-react';
+import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check, Settings2, Paperclip } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
@@ -372,6 +372,19 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
           {/* Input */}
           <div className="border-t border-border p-4">
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => {
+                  toast.info('📎 Загрузка файлов', {
+                    description: 'Бесплатные модели не поддерживают файлы/изображения. Используйте платные модели (GPT-4, Claude) для работы с файлами.',
+                    duration: 5000,
+                  });
+                }}
+                title="Прикрепить файл (доступно в платных моделях)"
+              >
+                <Paperclip className="size-4" />
+              </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -389,8 +402,8 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 <Send className="size-4" />
               </Button>
             </div>
-            <p className="mt-2 text-muted-foreground">
-              💡 Совет: используйте Shift+Enter для новой строки
+            <p className="mt-2 text-xs text-muted-foreground">
+              💡 Shift+Enter для новой строки | 📎 Файлы доступны в платных моделях (GPT-4, Claude)
             </p>
           </div>
         </div>

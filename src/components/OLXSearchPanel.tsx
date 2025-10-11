@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Search, ExternalLink, Plus, TrendingUp, Package, Sparkles, Wrench, Check } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
@@ -373,11 +373,6 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const selectedComponent = PC_COMPONENTS.find(c => c.value === componentType);
   const totalBuildPrice = selectedComponents.reduce((sum, c) => sum + c.price, 0);
 
-  // Load initial results on mount
-  useEffect(() => {
-    handleSearch();
-  }, []); // Empty dependency array = run once on mount
-
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-4xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
@@ -567,9 +562,11 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
         </div>
       </div>
 
-      {/* Results */}
-      <ScrollArea className="flex-1 p-4">
-        {isLoading ? (
+      {/* Results - with proper scroll */}
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-4">
+            {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="rounded-lg border border-border bg-card p-4">
@@ -680,7 +677,9 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
             </p>
           </div>
         )}
-      </ScrollArea>
+          </div>
+        </ScrollArea>
+      </div>
 
       {/* Footer */}
       <div className="border-t border-border bg-muted/30 p-4">
