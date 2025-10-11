@@ -560,7 +560,11 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="shrink-0 flex items-center justify-center size-10 rounded-md bg-primary/20 hover:bg-primary/30 text-primary border-2 border-primary/50 transition-colors disabled:opacity-50"
+                className={`shrink-0 flex items-center justify-center size-10 rounded-md transition-colors disabled:opacity-50 ${
+                  supportsFiles 
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-primary' 
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80 border-2 border-border'
+                }`}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
