@@ -173,7 +173,14 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={logout} className="text-destructive">
+              <SidebarMenuButton 
+                onClick={() => {
+                  if (confirm('Выйти из аккаунта?')) {
+                    logout();
+                  }
+                }} 
+                className="text-destructive"
+              >
                 <LogOut className="size-4" />
                 <span>Выйти {authState.currentUser && `(${authState.currentUser.name})`}</span>
               </SidebarMenuButton>

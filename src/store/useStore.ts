@@ -55,7 +55,7 @@ interface StoreActions {
   // Auth
   register: (name: string, email: string, password: string) => boolean;
   login: (email: string, password: string) => boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 type Store = AppState & StoreActions;
@@ -675,7 +675,7 @@ export const useStore = create<Store>()(
         return true;
       },
 
-      logout: () => {
+      logout: async () => {
         // Save current workspace before logout
         const state = get();
         if (state.authState.currentUser) {
@@ -683,6 +683,16 @@ export const useStore = create<Store>()(
             `dashboard-workspace-${state.authState.currentUser.id}`,
             JSON.stringify(state.workspace)
           );
+        }
+
+        // Sign out from Firebase
+        try {
+          const { signOut } = await import('firebase/auth');
+          const { auth } = await import('../config/firebase');
+          await signOut(auth);
+          console.log('✅ Firebase sign out successful');
+        } catch (error) {
+          console.error('❌ Firebase sign out error:', error);
         }
 
         set({
