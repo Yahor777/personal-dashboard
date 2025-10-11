@@ -171,7 +171,7 @@ export default function App() {
           }}
         />
 
-        <main className="flex flex-1 flex-col overflow-hidden">
+        <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2 border-b border-border bg-background px-4 py-3">
             <Button

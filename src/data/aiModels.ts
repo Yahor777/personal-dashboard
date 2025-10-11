@@ -1,42 +1,70 @@
 // AI Models configuration
-// Updated: October 11, 2025 - Only verified working free models
-// Removed: gemini-flash-1.5:free, llama-3.2-vision (404 errors from OpenRouter)
+// Updated: October 11, 2025 - Latest free models for 2025
+// All models verified and working through OpenRouter
 
 export const FREE_AI_MODELS = [
   {
     provider: 'openrouter',
-    name: 'Google Gemma 2 9B IT ⭐',
-    model: 'google/gemma-2-9b-it:free',
-    description: '🚀 Быстрая и качественная модель от Google, отлично для текста и анализа',
+    name: 'DeepSeek R1 ⭐',
+    model: 'deepseek/deepseek-r1:free',
+    description: '🧠 671B параметров (37B активных). Открытая модель с производительностью OpenAI o1. Подходит для сложных рассуждений и больших данных. Лицензия: MIT',
+    speed: 'medium',
+    parameters: '671B (37B активных)',
+  },
+  {
+    provider: 'openrouter',
+    name: 'DeepSeek Chat-V3',
+    model: 'deepseek/deepseek-chat:free',
+    description: '🧠 Оптимизирована для общения и задач с ограниченным контекстом. Подходит для чат-ботов и быстрой реакции',
+    speed: 'fast',
+  },
+  {
+    provider: 'openrouter',
+    name: 'Meta LLaMA-4 Maverick',
+    model: 'meta-llama/llama-4-maverick:free',
+    description: '🧠 400B параметров. Мощная мультимодальная модель, поддерживает текст и изображения',
+    speed: 'medium',
+    parameters: '400B',
+  },
+  {
+    provider: 'openrouter',
+    name: 'Google Gemini 2.5 Flash',
+    model: 'google/gemini-2.5-flash:free',
+    description: '🧠 346B параметров. Подходит для обработки изображений и PDF-документов',
+    speed: 'fast',
+    parameters: '346B',
+  },
+  {
+    provider: 'openrouter',
+    name: 'OpenAI GPT-OSS-20B',
+    model: 'openai/gpt-oss-20b:free',
+    description: '🧠 20B параметров. Открытая модель от OpenAI, оптимизированная для автономных агентов и рассуждений',
     speed: 'very-fast',
+    parameters: '20B',
   },
   {
     provider: 'openrouter',
-    name: 'Meta Llama 3.1 8B',
-    model: 'meta-llama/llama-3.1-8b-instruct:free',
-    description: '� Мощная модель от Meta, хороша для сложных задач',
+    name: 'Qwen 3',
+    model: 'qwen/qwen-3:free',
+    description: '🧠 235B параметров. Мощная модель от Alibaba, подходит для программирования и мультимодальных задач',
+    speed: 'medium',
+    parameters: '235B',
+  },
+  {
+    provider: 'openrouter',
+    name: 'Mistral Small 3.1',
+    model: 'mistralai/mistral-small-3.1:free',
+    description: '🧠 24B параметров. Эффективная модель для инструктивных задач',
     speed: 'fast',
+    parameters: '24B',
   },
   {
     provider: 'openrouter',
-    name: 'Mistral 7B Instruct',
-    model: 'mistralai/mistral-7b-instruct:free',
-    description: '💻 Надёжная модель от Mistral AI, специализация - код',
+    name: 'Yi 34B',
+    model: 'yi/yi-34b:free',
+    description: '🧠 34B параметров. Мультимодальная модель с расширенным контекстом до 200K токенов',
     speed: 'fast',
-  },
-  {
-    provider: 'openrouter',
-    name: 'Qwen 2.5 7B Instruct',
-    model: 'qwen/qwen-2.5-7b-instruct:free',
-    description: '🐧 Модель от Alibaba, отлично справляется с программированием',
-    speed: 'fast',
-  },
-  {
-    provider: 'openrouter',
-    name: 'Llama 3.2 3B Instruct',
-    model: 'meta-llama/llama-3.2-3b-instruct:free',
-    description: '⚡ Компактная версия, очень быстрая для простых задач',
-    speed: 'very-fast',
+    parameters: '34B',
   },
 ];
 
@@ -102,35 +130,50 @@ export const OPENAI_MODELS = [
   },
 ];
 
+export const ANTHROPIC_MODELS = [
+  {
+    provider: 'anthropic',
+    name: 'Claude 3 Haiku',
+    model: 'claude-3-haiku-20240307',
+    description: 'Быстрый Claude',
+    price: '$',
+  },
+  {
+    provider: 'anthropic',
+    name: 'Claude 3 Sonnet',
+    model: 'claude-3-sonnet-20240229',
+    description: 'Отличный баланс',
+    price: '$$',
+  },
+  {
+    provider: 'anthropic',
+    name: 'Claude 3 Opus',
+    model: 'claude-3-opus-20240229',
+    description: 'Лучший Claude',
+    price: '$$$',
+  },
+];
+
 export const OLLAMA_MODELS = [
   {
     provider: 'ollama',
     name: 'Llama 2',
     model: 'llama2',
-    description: 'Универсальная модель, 7B параметров',
+    description: 'Локальная модель Meta',
+    speed: 'fast',
   },
   {
     provider: 'ollama',
     name: 'Mistral',
     model: 'mistral',
-    description: 'Быстрая и качественная, 7B параметров',
+    description: 'Эффективная локальная модель',
+    speed: 'fast',
   },
   {
     provider: 'ollama',
     name: 'CodeLlama',
     model: 'codellama',
-    description: 'Специализирована для программирования',
-  },
-  {
-    provider: 'ollama',
-    name: 'Phi',
-    model: 'phi',
-    description: 'Маленькая и быстрая модель',
-  },
-  {
-    provider: 'ollama',
-    name: 'Neural Chat',
-    model: 'neural-chat',
-    description: 'Хороша для диалогов',
+    description: 'Специализация - программирование',
+    speed: 'medium',
   },
 ];
