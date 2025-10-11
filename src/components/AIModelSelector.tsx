@@ -1,7 +1,75 @@
 import { Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { FREE_AI_MODELS, PAID_AI_MODELS, OPENAI_MODELS, OLLAMA_MODELS } from '../data/aiModels';
+// AI Models data
+const FREE_AI_MODELS = [
+    {
+        model: 'meta-llama/llama-3.2-3b-instruct:free',
+        name: 'Llama 3.2 3B',
+        description: 'Быстрая и качественная модель для повседневных задач',
+        price: 'FREE',
+        speed: 'Fast'
+    },
+    {
+        model: 'google/gemma-2-9b-it:free',
+        name: 'Gemma 2 9B',
+        description: 'Мощная модель от Google для сложных задач',
+        price: 'FREE',
+        speed: 'Medium'
+    },
+    {
+        model: 'mistralai/mistral-7b-instruct:free',
+        name: 'Mistral 7B',
+        description: 'Универсальная модель с хорошим балансом',
+        price: 'FREE',
+        speed: 'Fast'
+    }
+];
+
+const PAID_AI_MODELS = [
+    {
+        model: 'anthropic/claude-3.5-sonnet',
+        name: 'Claude 3.5 Sonnet',
+        description: 'Топовая модель для профессиональной работы',
+        price: '$3/1M tokens'
+    },
+    {
+        model: 'openai/gpt-4-turbo',
+        name: 'GPT-4 Turbo',
+        description: 'Самая продвинутая модель OpenAI',
+        price: '$10/1M tokens'
+    }
+];
+
+const OPENAI_MODELS = [
+    {
+        model: 'gpt-4-turbo-preview',
+        name: 'GPT-4 Turbo',
+        description: 'Самая мощная модель OpenAI',
+        price: '$10/1M tokens'
+    },
+    {
+        model: 'gpt-3.5-turbo',
+        name: 'GPT-3.5 Turbo',
+        description: 'Быстрая и доступная модель',
+        price: '$0.5/1M tokens'
+    }
+];
+
+const OLLAMA_MODELS = [
+    {
+        model: 'llama2',
+        name: 'Llama 2',
+        description: 'Локальная модель Meta',
+        price: 'Local'
+    },
+    {
+        model: 'mistral',
+        name: 'Mistral',
+        description: 'Быстрая локальная модель',
+        price: 'Local'
+    }
+];
 import {
   Collapsible,
   CollapsibleContent,

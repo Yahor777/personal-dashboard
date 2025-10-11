@@ -8,7 +8,46 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AIService } from '../services/aiService';
-import { FREE_AI_MODELS, type AIModel } from '../data/aiModels';
+// AI Models configuration
+const FREE_AI_MODELS: Array<{
+  model: string;
+  name: string;
+  speed: string;
+  supportsFiles: boolean;
+}> = [
+  {
+    model: 'google/gemini-2.0-flash-exp:free',
+    name: 'Gemini 2.0 Flash',
+    speed: 'Быстрая, поддержка файлов',
+    supportsFiles: true,
+  },
+  {
+    model: 'meta-llama/llama-3.2-3b-instruct:free',
+    name: 'Llama 3.2 3B',
+    speed: 'Очень быстрая',
+    supportsFiles: false,
+  },
+  {
+    model: 'meta-llama/llama-3.1-8b-instruct:free',
+    name: 'Llama 3.1 8B',
+    speed: 'Быстрая',
+    supportsFiles: false,
+  },
+  {
+    model: 'mistralai/mistral-7b-instruct:free',
+    name: 'Mistral 7B',
+    speed: 'Быстрая',
+    supportsFiles: false,
+  },
+  {
+    model: 'microsoft/phi-3-mini-128k-instruct:free',
+    name: 'Phi-3 Mini',
+    speed: 'Быстрая',
+    supportsFiles: false,
+  },
+];
+
+type AIModel = typeof FREE_AI_MODELS[number];
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';

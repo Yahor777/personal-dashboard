@@ -111,7 +111,7 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
               </CardHeader>
               <CardContent>
                 <div>
-                  {Object.values(analytics.timeByTab).reduce((a, b) => a + b, 0)} мин
+                  {Object.values(analytics.timeByTab).reduce((a, b) => (a as number) + (b as number), 0 as number) as number} мин
                 </div>
               </CardContent>
             </Card>
