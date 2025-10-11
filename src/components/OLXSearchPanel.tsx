@@ -18,6 +18,14 @@ interface OLXSearchPanelProps {
   onClose: () => void;
 }
 
+// Marketplace options
+const MARKETPLACES = [
+  { value: 'olx', label: '🏪 OLX.pl', url: 'https://www.olx.pl', searchPath: '/search' },
+  { value: 'ceneo', label: '💰 Ceneo.pl', url: 'https://www.ceneo.pl', searchPath: '/search' },
+  { value: 'xkom', label: '⚡ x-kom', url: 'https://www.x-kom.pl', searchPath: '/szukaj' },
+  { value: 'mediaexpert', label: '🎯 MediaExpert', url: 'https://www.mediaexpert.pl', searchPath: '/szukaj' },
+];
+
 interface SearchResult {
   id: string;
   title: string;
@@ -28,6 +36,7 @@ interface SearchResult {
   url: string;
   image?: string;
   description: string;
+  marketplace?: string;
 }
 
 const PC_COMPONENTS = [
@@ -54,6 +63,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const { t } = useTranslation(workspace.settings.language);
   const [searchQuery, setSearchQuery] = useState('');
   const [componentType, setComponentType] = useState('gpu');
+  const [marketplace, setMarketplace] = useState('olx');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [condition, setCondition] = useState('all');
@@ -95,19 +105,20 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
 
       // Ask AI to enhance search query
       const prompt = `Ты эксперт по компьютерным комплектующим. Пользователь ищет: "${searchQuery}"
+Маркетплейс: ${MARKETPLACES.find(m => m.value === marketplace)?.label}
 
 Задача: проанализируй запрос и предложи:
-1. Лучшие ключевые слова для поиска на OLX (польский рынок)
-2. Какие характеристики важны для этого компонента
-3. На что обратить внимание при покупке
-4. Примерную справедливую цену в злотых (zł)
+1. Лучшие ключевые слова для поиска на выбранном маркетплейсе (польский рынок)
+2. Рекомендуемую категорию компонента (gpu, cpu, ram и т.д.)
+3. Примерный ценовой диапазон в злотых (PLN)
+4. На что обратить внимание при покупке
 
-Ответь в формате JSON:
+Верни ответ в формате JSON:
 {
-  "searchTerms": ["термин1", "термин2"],
-  "specs": ["характеристика1", "характеристика2"],
-  "warnings": ["предупреждение1", "предупреждение2"],
-  "priceRange": {"min": 100, "max": 300}
+  "keywords": "улучшенные ключевые слова",
+  "component": "тип компонента",
+  "priceRange": {"min": 100, "max": 500},
+  "tips": "советы по выбору"
 }`;
 
       const result = await aiService.chat([
@@ -158,62 +169,83 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const handleSearch = async () => {
     setIsLoading(true);
     
-    // Build search query for OLX
+    // Build search query based on selected marketplace
     const searchTerm = searchQuery || selectedComponent?.keywords.split(' ')[0] || 'RX 580';
-    const olxSearchUrl = `https://www.olx.pl/elektronika/komputery/podzespoly/q-${encodeURIComponent(searchTerm)}`;
+    const selectedMarketplace = MARKETPLACES.find(m => m.value === marketplace) || MARKETPLACES[0];
     
-    // Simulate API call - в реальности здесь будет парсинг OLX
+    let searchUrl = '';
+    switch (marketplace) {
+      case 'olx':
+        searchUrl = `https://www.olx.pl/elektronika/komputery/podzespoly/q-${encodeURIComponent(searchTerm)}`;
+        break;
+      case 'ceneo':
+        searchUrl = `https://www.ceneo.pl/${encodeURIComponent(searchTerm)}`;
+        break;
+      case 'xkom':
+        searchUrl = `https://www.x-kom.pl/szukaj?q=${encodeURIComponent(searchTerm)}`;
+        break;
+      case 'mediaexpert':
+        searchUrl = `https://www.mediaexpert.pl/szukaj?query[menu_item]=&query[querystring]=${encodeURIComponent(searchTerm)}`;
+        break;
+    }
+    
+    // Simulate API call - в реальности здесь будет парсинг маркетплейсов
     setTimeout(() => {
       let mockResults: SearchResult[] = [
         {
           id: '1',
-          title: 'RX 580 8GB Sapphire Nitro+',
-          price: 250,
+          title: `${searchTerm} - Топовое предложение`,
+          price: marketplace === 'olx' ? 250 : 899,
           currency: 'zł',
           condition: 'like-new',
           location: 'Warszawa',
-          url: olxSearchUrl,
-          description: 'Отличное состояние, без майнинга, тесты прилагаются. (Mock данные - кликните чтобы искать на OLX)',
+          url: searchUrl,
+          marketplace: marketplace,
+          description: `Отличное состояние, ${marketplace === 'olx' ? 'без майнинга' : 'гарантия 24 месяца'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
         },
         {
           id: '2',
-          title: 'Gigabyte RX 580 Gaming 8GB',
-          price: 280,
+          title: `${searchTerm} Gaming Edition`,
+          price: marketplace === 'olx' ? 280 : 999,
           currency: 'zł',
           condition: 'good',
           location: 'Kraków',
-          url: olxSearchUrl,
-          description: 'Работает отлично, цена договорная. (Mock данные - кликните чтобы искать на OLX)',
+          url: searchUrl,
+          marketplace: marketplace,
+          description: `Работает отлично, цена ${marketplace === 'olx' ? 'договорная' : 'финальная'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
         },
         {
           id: '3',
-          title: 'MSI RX 580 Armor 8GB',
-          price: 230,
+          title: `${searchTerm} Premium`,
+          price: marketplace === 'olx' ? 230 : 1099,
           currency: 'zł',
           condition: 'fair',
           location: 'Poznań',
-          url: olxSearchUrl,
-          description: 'Есть небольшие царапины на корпусе. (Mock данные - кликните чтобы искать на OLX)',
+          url: searchUrl,
+          marketplace: marketplace,
+          description: `${marketplace === 'olx' ? 'Есть небольшие царапины на корпусе' : 'Топовая модель'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
         },
         {
           id: '4',
-          title: 'Asus RX 580 Dual 8GB',
-          price: 320,
+          title: `${searchTerm} Ultimate`,
+          price: marketplace === 'olx' ? 320 : 1299,
           currency: 'zł',
           condition: 'new',
           location: 'Gdańsk',
-          url: olxSearchUrl,
-          description: 'Новая в упаковке, гарантия 2 года. (Mock данные - кликните чтобы искать на OLX)',
+          url: searchUrl,
+          marketplace: marketplace,
+          description: `Новая в упаковке, гарантия ${marketplace === 'olx' ? '2 года' : '36 месяцев'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
         },
         {
           id: '5',
-          title: 'PowerColor RX 580 Red Devil 8GB',
-          price: 265,
+          title: `${searchTerm} Pro Edition`,
+          price: marketplace === 'olx' ? 265 : 949,
           currency: 'zł',
           condition: 'good',
           location: 'Wrocław',
-          url: olxSearchUrl,
-          description: 'Майнинг 6 месяцев, новые термопрокладки. (Mock данные - кликните чтобы искать на OLX)',
+          url: searchUrl,
+          marketplace: marketplace,
+          description: `${marketplace === 'olx' ? 'Майнинг 6 месяцев, новые термопрокладки' : 'Профессиональная серия'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
         },
       ];
 
@@ -379,7 +411,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
       <div className="flex items-center justify-between border-b border-border p-4">
         <div className="flex items-center gap-3">
           <Package className="size-5 text-primary" />
-          <h2>OLX Поиск компонентов ПК</h2>
+          <h2>🛒 Поиск на маркетплейсах</h2>
           <Badge variant="outline" className="text-xs">Ctrl+K</Badge>
           
           {/* Build Mode Toggle */}
@@ -403,6 +435,23 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
       {/* Search Controls */}
       <div className="border-b border-border bg-muted/30 p-4">
         <div className="grid gap-4">
+          {/* Marketplace Selector */}
+          <div className="flex gap-2 items-center">
+            <span className="text-sm font-medium">Маркетплейс:</span>
+            <div className="flex gap-2 flex-wrap">
+              {MARKETPLACES.map((m) => (
+                <Button
+                  key={m.value}
+                  variant={marketplace === m.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMarketplace(m.value)}
+                >
+                  {m.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {/* Main Search Bar */}
           <div className="flex gap-2">
             <Input
@@ -566,6 +615,57 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
           <div className="p-4">
+            {/* BEST FREE METHOD INFO */}
+            {results.length === 0 && !isLoading && (
+              <div className="mb-6 rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
+                <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary">
+                  <Sparkles className="size-5" />
+                  🎯 Лучший БЕСПЛАТНЫЙ способ поиска комплектующих
+                </h3>
+                
+                <div className="space-y-3 text-sm">
+                  <div className="rounded-md bg-background p-3">
+                    <p className="font-medium mb-2">🔥 Рекомендация #1: OLX.pl (б/у рынок)</p>
+                    <ul className="space-y-1 text-muted-foreground ml-4">
+                      <li>• Самые низкие цены (часто в 2-3 раза дешевле новых)</li>
+                      <li>• Огромный выбор б/у компонентов</li>
+                      <li>• Можно торговаться с продавцом</li>
+                      <li>• ⚠️ Проверяйте продавца и состояние товара!</li>
+                    </ul>
+                  </div>
+
+                  <div className="rounded-md bg-background p-3">
+                    <p className="font-medium mb-2">💰 Рекомендация #2: Ceneo.pl (сравнение цен)</p>
+                    <ul className="space-y-1 text-muted-foreground ml-4">
+                      <li>• Сравнивает цены во ВСЕХ польских магазинах</li>
+                      <li>• Показывает историю цен и скидки</li>
+                      <li>• Новые товары с гарантией</li>
+                      <li>• Отзывы и рейтинги</li>
+                    </ul>
+                  </div>
+
+                  <div className="rounded-md bg-background p-3">
+                    <p className="font-medium mb-2">⚡ Рекомендация #3: x-kom & MediaExpert (акции)</p>
+                    <ul className="space-y-1 text-muted-foreground ml-4">
+                      <li>• Регулярные распродажи и акции</li>
+                      <li>• Рассрочка 0% на крупные покупки</li>
+                      <li>• Быстрая доставка по Польше</li>
+                      <li>• Официальная гарантия производителя</li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-4 rounded-md bg-yellow-500/10 p-3 border border-yellow-500/20">
+                    <p className="font-medium text-yellow-600 dark:text-yellow-500 mb-2">💡 Совет эксперта:</p>
+                    <p className="text-sm text-muted-foreground">
+                      Сначала проверьте цены на <strong>Ceneo.pl</strong> (узнаете рыночную стоимость), 
+                      потом ищите на <strong>OLX.pl</strong> (найдете б/у дешевле в 2-3 раза). 
+                      Для новых компонентов следите за акциями на <strong>x-kom</strong> и <strong>MediaExpert</strong>!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (

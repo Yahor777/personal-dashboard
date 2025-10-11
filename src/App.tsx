@@ -344,7 +344,7 @@ export default function App() {
         <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
           {/* Mobile menu button - fixed and always visible */}
           <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center gap-2 border-b border-border bg-background px-4 py-3 shadow-md">
-            <SidebarTrigger className="!static !transform-none hover:bg-accent rounded-md p-2 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground">
+            <SidebarTrigger className="hover:bg-accent rounded-md p-2 min-h-[44px] min-w-[44px] bg-primary text-primary-foreground">
               <Menu className="size-6" />
             </SidebarTrigger>
             <h2 className="flex-1 font-semibold text-lg">{workspace.name}</h2>
@@ -355,11 +355,11 @@ export default function App() {
 
           {/* Welcome Header */}
           {workspace.settings.userName && (
-            <div className="border-b border-border bg-gradient-to-r from-primary/5 to-accent/20 px-4 md:px-6 py-3 md:py-4">
-              <h1 className="text-foreground">
+            <div className="border-b border-border bg-gradient-to-r from-primary/5 to-accent/20 px-4 md:px-6 py-3 md:py-4 relative z-10">
+              <h1 className="text-base md:text-lg font-semibold text-foreground">
                 Привет, {workspace.settings.userName} 👋
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 У тебя{' '}
                 {(workspace.cards || []).filter(
                   (c) =>
