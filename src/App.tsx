@@ -261,7 +261,7 @@ export default function App() {
         <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2 border-b border-border bg-background px-4 py-3">
-            <SidebarTrigger className="p-2">
+            <SidebarTrigger className="hover:bg-accent rounded-md">
               <Menu className="size-5" />
             </SidebarTrigger>
             <h2 className="flex-1 font-semibold">{workspace.name}</h2>
