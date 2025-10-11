@@ -27,15 +27,16 @@ export function KanbanCard({ card, onClick, isDragging = false }: KanbanCardProp
     high: 'bg-red-500/10 text-red-600 border-red-500/20',
   };
 
-  const typeIcons = {
+  const typeIcons: Record<string, string> = {
     task: '📋',
     flashcard: '🎴',
     recipe: '🍳',
     note: '📝',
+    'pc-component': '💻',
   };
 
-  const completedChecklist = card.checklist.filter((item) => item.completed).length;
-  const totalChecklist = card.checklist.length;
+  const completedChecklist = (card.checklist || []).filter((item) => item.completed).length;
+  const totalChecklist = (card.checklist || []).length;
 
   return (
     <div
@@ -96,16 +97,16 @@ export function KanbanCard({ card, onClick, isDragging = false }: KanbanCardProp
             </span>
           </div>
         )}
-        {card.attachments.length > 0 && (
+        {(card.attachments || []).length > 0 && (
           <div className="flex items-center gap-1">
             <Paperclip className="size-3" />
-            <span className="text-xs">{card.attachments.length}</span>
+            <span className="text-xs">{(card.attachments || []).length}</span>
           </div>
         )}
-        {card.comments.length > 0 && (
+        {(card.comments || []).length > 0 && (
           <div className="flex items-center gap-1">
             <MessageSquare className="size-3" />
-            <span className="text-xs">{card.comments.length}</span>
+            <span className="text-xs">{(card.comments || []).length}</span>
           </div>
         )}
       </div>
