@@ -1,33 +1,33 @@
 // AI Models configuration
-// Updated: October 2025 - Using actual available free models from OpenRouter
+// Updated: October 2025 - Using verified working free models from OpenRouter
 
 export const FREE_AI_MODELS = [
   {
     provider: 'openrouter',
-    name: 'Meta Llama 3.1 8B Instruct',
-    model: 'meta-llama/llama-3.1-8b-instruct:free',
-    description: 'Отличная бесплатная модель от Meta, хороша для всех задач',
-    speed: 'fast',
-  },
-  {
-    provider: 'openrouter',
-    name: 'Google Gemma 2 9B',
+    name: 'Google Gemma 2 9B IT',
     model: 'google/gemma-2-9b-it:free',
-    description: 'Новая версия Gemma, улучшенное качество',
+    description: 'Быстрая и качественная бесплатная модель от Google',
     speed: 'fast',
   },
   {
     provider: 'openrouter',
     name: 'Mistral 7B Instruct',
     model: 'mistralai/mistral-7b-instruct:free',
-    description: 'Быстрая и качественная бесплатная модель',
+    description: 'Надёжная модель от Mistral AI',
     speed: 'fast',
   },
   {
     provider: 'openrouter',
-    name: 'Phi-3 Medium',
-    model: 'microsoft/phi-3-medium-128k-instruct:free',
-    description: 'Компактная модель от Microsoft, быстрая',
+    name: 'Qwen 2.5 7B Instruct',
+    model: 'qwen/qwen-2.5-7b-instruct:free',
+    description: 'Новая модель от Alibaba, хороша для кода',
+    speed: 'fast',
+  },
+  {
+    provider: 'openrouter',
+    name: 'Llama 3.2 3B Instruct',
+    model: 'meta-llama/llama-3.2-3b-instruct:free',
+    description: 'Компактная версия Llama 3.2, очень быстрая',
     speed: 'very-fast',
   },
 ];

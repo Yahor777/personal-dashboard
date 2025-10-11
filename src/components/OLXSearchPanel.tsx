@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Search, ExternalLink, Plus, TrendingUp, Package, Sparkles, Wrench, Check } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
@@ -57,6 +57,9 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [condition, setCondition] = useState('all');
+  const [location, setLocation] = useState('all');
+  const [delivery, setDelivery] = useState('all');
+  const [sellerType, setSellerType] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -130,6 +133,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
         if (minPrice && item.price < parseInt(minPrice)) return false;
         if (maxPrice && item.price > parseInt(maxPrice)) return false;
         if (condition !== 'all' && item.condition !== condition) return false;
+        if (location !== 'all' && item.location !== location) return false;
         if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
       });
@@ -280,6 +284,11 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const selectedComponent = PC_COMPONENTS.find(c => c.value === componentType);
   const totalBuildPrice = selectedComponents.reduce((sum, c) => sum + c.price, 0);
 
+  // Load initial results on mount
+  useEffect(() => {
+    handleSearch();
+  }, []); // Empty dependency array = run once on mount
+
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-4xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
@@ -310,10 +319,27 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
       {/* Search Controls */}
       <div className="border-b border-border bg-muted/30 p-4">
         <div className="grid gap-4">
-          {/* Row 1: Component Type & Search Query */}
+          {/* Main Search Bar */}
+          <div className="flex gap-2">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Что ищете? Например: RX 580 8GB"
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearch();
+              }}
+            />
+            <Button onClick={handleSearch} disabled={isLoading}>
+              <Search className="mr-2 size-4" />
+              Поиск
+            </Button>
+          </div>
+
+          {/* Filters Row 1: Category & Location */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Тип компонента</label>
+              <label className="text-xs font-medium text-muted-foreground">Категория</label>
               <Select value={componentType} onValueChange={setComponentType}>
                 <SelectTrigger>
                   <SelectValue />
@@ -329,85 +355,117 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Поиск (модель, характеристики)</label>
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Например: RX 580 8GB"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSearch();
-                }}
-              />
+              <label className="text-xs font-medium text-muted-foreground">📍 Локация</label>
+              <Select value={location} onValueChange={setLocation}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Вся Польша</SelectItem>
+                  <SelectItem value="Warszawa">Warszawa</SelectItem>
+                  <SelectItem value="Kraków">Kraków</SelectItem>
+                  <SelectItem value="Poznań">Poznań</SelectItem>
+                  <SelectItem value="Gdańsk">Gdańsk</SelectItem>
+                  <SelectItem value="Wrocław">Wrocław</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Row 2: Price Range & Condition */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          {/* Filters Row 2: Price Range */}
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Мин. цена (zł)</label>
+              <label className="text-xs font-medium text-muted-foreground">Цена от (zł)</label>
               <Input
                 type="number"
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
-                placeholder="100"
+                placeholder="0"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Макс. цена (zł)</label>
+              <label className="text-xs font-medium text-muted-foreground">Цена до (zł)</label>
               <Input
                 type="number"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="500"
+                placeholder="10000"
               />
             </div>
+          </div>
 
+          {/* Filters Row 3: Condition, Delivery, Seller */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Состояние</label>
+              <label className="text-xs font-medium text-muted-foreground">Состояние</label>
               <Select value={condition} onValueChange={setCondition}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Любое</SelectItem>
-                  <SelectItem value="new">✨ Новое</SelectItem>
-                  <SelectItem value="like-new">⭐ Как новое</SelectItem>
-                  <SelectItem value="good">✅ Хорошее</SelectItem>
-                  <SelectItem value="fair">⚠️ Среднее</SelectItem>
+                  <SelectItem value="new">Новое</SelectItem>
+                  <SelectItem value="like-new">Как новое</SelectItem>
+                  <SelectItem value="good">Хорошее</SelectItem>
+                  <SelectItem value="fair">Среднее</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Сортировка</label>
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <label className="text-xs font-medium text-muted-foreground">📦 Доставка</label>
+              <Select value={delivery} onValueChange={setDelivery}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="newest">🕒 Новые</SelectItem>
-                  <SelectItem value="price-asc">💰 Дешевле</SelectItem>
-                  <SelectItem value="price-desc">💎 Дороже</SelectItem>
+                  <SelectItem value="all">Не важно</SelectItem>
+                  <SelectItem value="available">Есть доставка</SelectItem>
+                  <SelectItem value="pickup">Только самовывоз</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">👤 Продавец</label>
+              <Select value={sellerType} onValueChange={setSellerType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все</SelectItem>
+                  <SelectItem value="private">Частное лицо</SelectItem>
+                  <SelectItem value="business">Компания</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <Button onClick={handleSearch} disabled={isLoading} className="w-full">
-            <Search className="mr-2 size-4" />
-            {isLoading ? 'Ищем...' : 'Найти на OLX & Allegro'}
-          </Button>
+          {/* Sort */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs font-medium text-muted-foreground">Сортировка:</label>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-auto">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Новые</SelectItem>
+                <SelectItem value="price-asc">Сначала дешевые</SelectItem>
+                <SelectItem value="price-desc">Сначала дорогие</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="mt-3 rounded-lg bg-blue-500/10 p-3 text-blue-600">
-          <p className="flex items-center gap-2 text-sm">
-            <TrendingUp className="size-4" />
-            <strong>Поиск:</strong> {selectedComponent?.label}
-            {minPrice && ` | От ${minPrice} zł`}
-            {maxPrice && ` | До ${maxPrice} zł`}
-            {condition !== 'all' && ` | Состояние: ${condition}`}
-          </p>
+        {/* Active Filters Info */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {minPrice && <Badge variant="secondary">От {minPrice} zł</Badge>}
+          {maxPrice && <Badge variant="secondary">До {maxPrice} zł</Badge>}
+          {condition !== 'all' && <Badge variant="secondary">{CONDITION_LABELS[condition as keyof typeof CONDITION_LABELS]}</Badge>}
+          {location !== 'all' && <Badge variant="secondary">📍 {location}</Badge>}
+          {delivery !== 'all' && <Badge variant="secondary">📦 {delivery === 'available' ? 'С доставкой' : 'Самовывоз'}</Badge>}
+          {sellerType !== 'all' && <Badge variant="secondary">👤 {sellerType === 'private' ? 'Частник' : 'Бизнес'}</Badge>}
         </div>
       </div>
 

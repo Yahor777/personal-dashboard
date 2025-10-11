@@ -139,12 +139,14 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <Select
                   value={workspace.settings.aiProvider || 'none'}
                   onValueChange={(v: string) => {
-                    updateSettings({ aiProvider: v as any });
-                    // Автоматически выбрать бесплатную модель для OpenRouter
-                    if (v === 'openrouter' && !workspace.settings.aiModel) {
+                    // Auto-select working free model if using old broken model
+                    const currentModel = workspace.settings.aiModel;
+                    if (!currentModel || 
+                        currentModel === 'meta-llama/llama-3.1-8b-instruct:free' || 
+                        currentModel === 'microsoft/phi-3-medium-128k-instruct:free') {
                       updateSettings({ 
                         aiProvider: v as any,
-                        aiModel: 'meta-llama/llama-3.1-8b-instruct:free'
+                        aiModel: 'google/gemma-2-9b-it:free'
                       });
                     } else {
                       updateSettings({ aiProvider: v as any });
