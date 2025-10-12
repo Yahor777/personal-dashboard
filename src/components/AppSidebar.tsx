@@ -1,4 +1,4 @@
-import { Plus, Settings, BarChart3, Download, Upload, Home, Sparkles, Search, LogOut, Cpu } from 'lucide-react';
+import { Plus, Settings, BarChart3, Download, Upload, Home, Sparkles, Search, LogOut, Cpu, Code2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
@@ -36,9 +36,10 @@ interface AppSidebarProps {
   onOpenAI: () => void;
   onOpenOLXSearch: () => void;
   onOpenPCBuilder: () => void;
+  onOpenPythonLearning: () => void;
 }
 
-export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics, onOpenAI, onOpenOLXSearch, onOpenPCBuilder }: AppSidebarProps) {
+export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics, onOpenAI, onOpenOLXSearch, onOpenPCBuilder, onOpenPythonLearning }: AppSidebarProps) {
   const { workspace, currentTabId, setCurrentTab, addTab, deleteTab, updateTab, authState, logout } = useStore();
   const { t } = useTranslation(workspace.settings.language);
   const [isNewTabDialogOpen, setIsNewTabDialogOpen] = useState(false);
@@ -159,6 +160,12 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
               <SidebarMenuButton onClick={onOpenPCBuilder} className="text-blue-600">
                 <Cpu className="size-4" />
                 <span>🖥️ PC Builder</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={onOpenPythonLearning} className="text-green-600">
+                <Code2 className="size-4" />
+                <span>🐍 Python Roadmap</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
