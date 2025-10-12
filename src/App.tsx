@@ -10,6 +10,7 @@ import { ImportExportPanel } from './components/ImportExportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { AIAssistantPanel } from './components/AIAssistantPanel';
 import { OLXSearchPanel } from './components/OLXSearchPanel';
+import { PCBuilderPanel } from './components/PCBuilderPanel';
 import { OnboardingOverlay } from './components/OnboardingOverlay';
 import { LoginRegisterModal } from './components/LoginRegisterModal';
 import { EmptyState } from './components/EmptyState';
@@ -28,6 +29,7 @@ export default function App() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showOLXSearch, setShowOLXSearch] = useState(false);
+  const [showPCBuilder, setShowPCBuilder] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Handle Google Sign-In
@@ -310,6 +312,7 @@ export default function App() {
             setShowAnalytics(false);
             setShowAI(false);
             setShowOLXSearch(false);
+            setShowPCBuilder(false);
           }}
           onOpenImportExport={() => {
             setShowImportExport(true);
@@ -317,6 +320,7 @@ export default function App() {
             setShowAnalytics(false);
             setShowAI(false);
             setShowOLXSearch(false);
+            setShowPCBuilder(false);
           }}
           onOpenAnalytics={() => {
             setShowAnalytics(true);
@@ -324,6 +328,7 @@ export default function App() {
             setShowImportExport(false);
             setShowAI(false);
             setShowOLXSearch(false);
+            setShowPCBuilder(false);
           }}
           onOpenAI={() => {
             setShowOLXSearch(false);
@@ -331,6 +336,7 @@ export default function App() {
             setShowImportExport(false);
             setShowSettings(false);
             setShowAI(true);
+            setShowPCBuilder(false);
           }}
           onOpenOLXSearch={() => {
             setShowAI(false);
@@ -338,6 +344,15 @@ export default function App() {
             setShowImportExport(false);
             setShowSettings(false);
             setShowOLXSearch(true);
+            setShowPCBuilder(false);
+          }}
+          onOpenPCBuilder={() => {
+            setShowAI(false);
+            setShowAnalytics(false);
+            setShowImportExport(false);
+            setShowSettings(false);
+            setShowOLXSearch(false);
+            setShowPCBuilder(true);
           }}
         />
 
@@ -380,6 +395,7 @@ export default function App() {
         {showAnalytics && <AnalyticsPanel onClose={() => setShowAnalytics(false)} />}
         {showAI && <AIAssistantPanel onClose={() => setShowAI(false)} />}
         {showOLXSearch && <OLXSearchPanel onClose={() => setShowOLXSearch(false)} />}
+        {showPCBuilder && <PCBuilderPanel onClose={() => setShowPCBuilder(false)} />}
 
         <Toaster />
       </div>

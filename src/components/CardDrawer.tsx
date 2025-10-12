@@ -202,7 +202,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t('cardType')}</Label>
-              <Select value={type} onValueChange={(v) => { setType(v as CardType); handleSave(); }}>
+              <Select value={type} onValueChange={(v: string) => { setType(v as CardType); handleSave(); }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -217,7 +217,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
             </div>
             <div className="space-y-2">
               <Label>{t('cardPriority')}</Label>
-              <Select value={priority} onValueChange={(v) => { setPriority(v as Priority); handleSave(); }}>
+              <Select value={priority} onValueChange={(v: string) => { setPriority(v as Priority); handleSave(); }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -401,7 +401,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
                       <Label>Состояние</Label>
                       <Select
                         value={card.condition || 'good'}
-                        onValueChange={(v) => updateCard(card.id, { condition: v as any })}
+                        onValueChange={(v: string) => updateCard(card.id, { condition: v as any })}
                       >
                         <SelectTrigger>
                           <SelectValue />
