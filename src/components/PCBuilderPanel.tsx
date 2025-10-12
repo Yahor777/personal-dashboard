@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, CheckCircle, AlertTriangle, XCircle, Sparkles, Zap, TrendingUp } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle, XCircle, Sparkles, Zap, TrendingUp, Bot } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
+import { useStore } from '../store/useStore';
 import {
   POPULAR_CPUS,
   POPULAR_MOTHERBOARDS,
@@ -36,6 +37,7 @@ interface PCBuilderPanelProps {
 }
 
 export function PCBuilderPanel({ onClose }: PCBuilderPanelProps) {
+  const { sendMessage } = useStore();
   const [selectedCPU, setSelectedCPU] = useState<string>('');
   const [selectedMotherboard, setSelectedMotherboard] = useState<string>('');
   const [selectedRAM, setSelectedRAM] = useState<string>('');
@@ -43,6 +45,8 @@ export function PCBuilderPanel({ onClose }: PCBuilderPanelProps) {
   const [selectedPSU, setSelectedPSU] = useState<string>('');
   const [selectedCase, setSelectedCase] = useState<string>('');
   const [selectedStorage, setSelectedStorage] = useState<string[]>([]);
+  const [aiAdvice, setAiAdvice] = useState<string>('');
+  const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
   
   const [compatibilityChecks, setCompatibilityChecks] = useState<{
     cpuMotherboard: boolean;
@@ -144,6 +148,61 @@ export function PCBuilderPanel({ onClose }: PCBuilderPanelProps) {
     toast.success(`✅ Загружен шаблон: ${build.name}`);
   };
 
+  const getAIAdvice = async () => {
+    if (!cpu && !gpu && !motherboard) {
+      toast.error('Выбери хотя бы несколько компонентов для анализа');
+      return;
+    }
+
+    setIsLoadingAdvice(true);
+    setAiAdvice('');
+
+    const buildInfo = `
+Текущая сборка ПК:
+${cpu ? `- CPU: ${cpu.name} (${cpu.cores} ядер, ${cpu.tdp}W, сокет ${cpu.socket}) - ${cpu.price}zł` : '- CPU: не выбран'}
+${motherboard ? `- Материнская плата: ${motherboard.name} (сокет ${motherboard.socket}, ${motherboard.ramType}) - ${motherboard.price}zł` : '- Материнская плата: не выбрана'}
+${ram ? `- RAM: ${ram.name} (${ram.capacity}, ${ram.speed}MHz) - ${ram.price}zł` : '- RAM: не выбрана'}
+${gpu ? `- GPU: ${gpu.name} (${gpu.vram}GB VRAM, ${gpu.tdp}W) - ${gpu.price}zł` : '- GPU: не выбрана'}
+${psu ? `- БП: ${psu.name} (${psu.wattage}W, ${psu.efficiency}) - ${psu.price}zł` : '- БП: не выбран'}
+${caseItem ? `- Корпус: ${caseItem.name} - ${caseItem.price}zł` : '- Корпус: не выбран'}
+${storage.length > 0 ? `- Накопители: ${storage.map(s => `${s.name} (${s.capacity})`).join(', ')}` : '- Накопители: не выбраны'}
+
+Общая стоимость: ${totalPrice}zł
+Рекомендуемая мощность БП: ${recommendedPSU}W
+
+Статус совместимости:
+${compatibilityChecks.cpuMotherboard ? '✅' : '❌'} CPU ↔ Материнская плата
+${compatibilityChecks.ramMotherboard ? '✅' : '❌'} RAM ↔ Материнская плата
+${compatibilityChecks.psuSufficient ? '✅' : '❌'} Мощность БП
+${compatibilityChecks.gpuCase ? '✅' : '❌'} GPU ↔ Корпус
+`;
+
+    try {
+      const prompt = `${buildInfo}
+
+Ты эксперт по сборке компьютеров. Проанализируй эту сборку и дай полезные советы:
+
+1. 🎯 **Оценка сборки**: насколько хорошо подобраны компоненты?
+2. ⚠️ **Узкие места**: есть ли bottleneck (например, слабая видеокарта для мощного процессора)?
+3. 💡 **Рекомендации по улучшению**: что можно апгрейдить в первую очередь?
+4. 💰 **Соотношение цена/производительность**: стоит ли своих денег?
+5. 🎮 **Для каких задач подходит**: игры (какие FPS в CS2/Cyberpunk), программирование, монтаж видео?
+
+Ответь кратко и по делу (3-5 предложений на каждый пункт).`;
+
+      await sendMessage(prompt, (chunk) => {
+        setAiAdvice(prev => prev + chunk);
+      });
+
+      toast.success('✅ AI анализ завершён');
+    } catch (error) {
+      toast.error('Ошибка при получении совета от AI');
+      console.error(error);
+    } finally {
+      setIsLoadingAdvice(false);
+    }
+  };
+
   const allCompatible = Object.values(compatibilityChecks).every(c => c);
 
   return (
@@ -220,14 +279,14 @@ export function PCBuilderPanel({ onClose }: PCBuilderPanelProps) {
               </div>
 
               {/* Детали совместимости */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t">
                 <div className="flex items-center gap-2">
                   {compatibilityChecks.cpuMotherboard ? (
                     <CheckCircle className="size-4 text-green-500" />
                   ) : (
                     <XCircle className="size-4 text-red-500" />
                   )}
-                  <span className="text-sm">CPU + MB</span>
+                  <span className="text-sm">CPU ↔ MB</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {compatibilityChecks.ramMotherboard ? (
@@ -235,7 +294,7 @@ export function PCBuilderPanel({ onClose }: PCBuilderPanelProps) {
                   ) : (
                     <XCircle className="size-4 text-red-500" />
                   )}
-                  <span className="text-sm">RAM + MB</span>
+                  <span className="text-sm">RAM ↔ MB</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {compatibilityChecks.psuSufficient ? (
@@ -243,7 +302,7 @@ export function PCBuilderPanel({ onClose }: PCBuilderPanelProps) {
                   ) : (
                     <XCircle className="size-4 text-red-500" />
                   )}
-                  <span className="text-sm">PSU мощность</span>
+                  <span className="text-sm">PSU OK</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {compatibilityChecks.gpuCase ? (
@@ -251,9 +310,48 @@ export function PCBuilderPanel({ onClose }: PCBuilderPanelProps) {
                   ) : (
                     <XCircle className="size-4 text-red-500" />
                   )}
-                  <span className="text-sm">GPU + Case</span>
+                  <span className="text-sm">GPU ↔ Case</span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Advisor */}
+          <Card className="border-purple-500">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="size-5 text-purple-500" />
+                  🤖 AI Советник по сборке
+                </CardTitle>
+                <Button 
+                  onClick={getAIAdvice} 
+                  disabled={isLoadingAdvice || (!cpu && !gpu && !motherboard)}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isLoadingAdvice ? 'Анализирую...' : 'Получить совет'}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!aiAdvice && !isLoadingAdvice && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Bot className="size-12 mx-auto mb-3 opacity-50" />
+                  <p>Выбери компоненты и нажми "Получить совет"</p>
+                  <p className="text-sm mt-2">AI проанализирует твою сборку и даст рекомендации</p>
+                </div>
+              )}
+              {isLoadingAdvice && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              )}
+              {aiAdvice && (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <div className="whitespace-pre-wrap">{aiAdvice}</div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
