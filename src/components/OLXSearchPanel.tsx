@@ -173,94 +173,48 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
     const searchTerm = searchQuery || selectedComponent?.keywords.split(' ')[0] || 'RX 580';
     const selectedMarketplace = MARKETPLACES.find(m => m.value === marketplace) || MARKETPLACES[0];
     
-    let searchUrl = '';
-    switch (marketplace) {
-      case 'olx':
-        searchUrl = `https://www.olx.pl/elektronika/komputery/podzespoly/q-${encodeURIComponent(searchTerm)}`;
-        break;
-      case 'ceneo':
-        searchUrl = `https://www.ceneo.pl/${encodeURIComponent(searchTerm)}`;
-        break;
-      case 'xkom':
-        searchUrl = `https://www.x-kom.pl/szukaj?q=${encodeURIComponent(searchTerm)}`;
-        break;
-      case 'mediaexpert':
-        searchUrl = `https://www.mediaexpert.pl/szukaj?query[menu_item]=&query[querystring]=${encodeURIComponent(searchTerm)}`;
-        break;
-    }
-    
-    // Simulate API call - в реальности здесь будет парсинг маркетплейсов
-    setTimeout(() => {
-      let mockResults: SearchResult[] = [
-        {
-          id: '1',
-          title: `${searchTerm} - Топовое предложение`,
-          price: marketplace === 'olx' ? 250 : 899,
-          currency: 'zł',
-          condition: 'like-new',
-          location: 'Warszawa',
-          url: searchUrl,
-          marketplace: marketplace,
-          description: `Отличное состояние, ${marketplace === 'olx' ? 'без майнинга' : 'гарантия 24 месяца'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
+    try {
+      // Call backend API
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002';
+      
+      const response = await fetch(`${BACKEND_URL}/api/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          id: '2',
-          title: `${searchTerm} Gaming Edition`,
-          price: marketplace === 'olx' ? 280 : 999,
-          currency: 'zł',
-          condition: 'good',
-          location: 'Kraków',
-          url: searchUrl,
+        body: JSON.stringify({
+          query: searchTerm,
           marketplace: marketplace,
-          description: `Работает отлично, цена ${marketplace === 'olx' ? 'договорная' : 'финальная'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
-        },
-        {
-          id: '3',
-          title: `${searchTerm} Premium`,
-          price: marketplace === 'olx' ? 230 : 1099,
-          currency: 'zł',
-          condition: 'fair',
-          location: 'Poznań',
-          url: searchUrl,
-          marketplace: marketplace,
-          description: `${marketplace === 'olx' ? 'Есть небольшие царапины на корпусе' : 'Топовая модель'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
-        },
-        {
-          id: '4',
-          title: `${searchTerm} Ultimate`,
-          price: marketplace === 'olx' ? 320 : 1299,
-          currency: 'zł',
-          condition: 'new',
-          location: 'Gdańsk',
-          url: searchUrl,
-          marketplace: marketplace,
-          description: `Новая в упаковке, гарантия ${marketplace === 'olx' ? '2 года' : '36 месяцев'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
-        },
-        {
-          id: '5',
-          title: `${searchTerm} Pro Edition`,
-          price: marketplace === 'olx' ? 265 : 949,
-          currency: 'zł',
-          condition: 'good',
-          location: 'Wrocław',
-          url: searchUrl,
-          marketplace: marketplace,
-          description: `${marketplace === 'olx' ? 'Майнинг 6 месяцев, новые термопрокладки' : 'Профессиональная серия'}. (Mock данные - кликните чтобы искать на ${selectedMarketplace.label})`,
-        },
-      ];
-
-      // Apply filters
-      mockResults = mockResults.filter(item => {
-        if (minPrice && item.price < parseInt(minPrice)) return false;
-        if (maxPrice && item.price > parseInt(maxPrice)) return false;
-        if (condition !== 'all' && item.condition !== condition) return false;
-        if (location !== 'all' && item.location !== location) return false;
-        if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        return true;
+          minPrice: minPrice || undefined,
+          maxPrice: maxPrice || undefined,
+          category: componentType,
+          location: location !== 'all' ? location : undefined,
+        }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Apply additional client-side filters
+      let filteredResults = data.results || [];
+      
+      // Search query filter
+      if (searchQuery) {
+        filteredResults = filteredResults.filter((item: SearchResult) =>
+          item.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      
+      // Condition filter
+      if (condition !== 'all') {
+        filteredResults = filteredResults.filter((item: SearchResult) => item.condition === condition);
+      }
+
       // Apply sorting
-      mockResults.sort((a, b) => {
+      filteredResults.sort((a: SearchResult, b: SearchResult) => {
         switch (sortBy) {
           case 'price-asc':
             return a.price - b.price;
@@ -268,13 +222,56 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
             return b.price - a.price;
           case 'newest':
           default:
-            return 0; // Keep original order for mock data
+            return 0;
         }
       });
       
-      setResults(mockResults);
+      setResults(filteredResults);
+      
+      if (filteredResults.length > 0) {
+        toast.success(`Найдено ${filteredResults.length} объявлений на ${selectedMarketplace.label}`, {
+          description: data.source === 'cache' ? 'Из кэша' : 'Свежие данные',
+        });
+      } else {
+        toast.info('Ничего не найдено', {
+          description: 'Попробуйте изменить параметры поиска',
+        });
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      
+      // Fallback: Build direct marketplace URL with filters
+      let searchUrl = '';
+      const priceFilter = minPrice || maxPrice ? `&price_from=${minPrice || ''}&price_to=${maxPrice || ''}` : '';
+      
+      switch (marketplace) {
+        case 'olx':
+          // OLX новый формат URL
+          searchUrl = `https://www.olx.pl/d/oferty/q-${encodeURIComponent(searchTerm)}/?search[filter_enum_condition][0]=used${priceFilter ? `&search[filter_float_price:from]=${minPrice || ''}&search[filter_float_price:to]=${maxPrice || ''}` : ''}`;
+          break;
+        case 'ceneo':
+          searchUrl = `https://www.ceneo.pl/;szukaj-${encodeURIComponent(searchTerm)}${priceFilter ? `;price_from=${minPrice || ''};price_to=${maxPrice || ''}` : ''}`;
+          break;
+        case 'xkom':
+          searchUrl = `https://www.x-kom.pl/szukaj?q=${encodeURIComponent(searchTerm)}${minPrice ? `&f201-0=${minPrice}` : ''}${maxPrice ? `&f201-1=${maxPrice}` : ''}`;
+          break;
+        case 'mediaexpert':
+          searchUrl = `https://www.mediaexpert.pl/szukaj?query[querystring]=${encodeURIComponent(searchTerm)}`;
+          break;
+      }
+      
+      toast.warning('Backend scraper недоступен', {
+        description: `Открываю поиск на ${selectedMarketplace.label} в новой вкладке`,
+        duration: 5000,
+      });
+      
+      // Автоматически открываем ссылку
+      window.open(searchUrl, '_blank');
+      
+      setResults([]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleAddToBoard = (result: SearchResult, targetColumn?: string) => {
@@ -813,15 +810,15 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
           </div>
         ) : (
           <div className="space-y-3 text-sm">
-            {/* Warning about mock data */}
-            <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-yellow-700 dark:text-yellow-400">
+            {/* Real-time search info */}
+            <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-primary">
               <p className="flex items-center gap-2 font-semibold">
                 <TrendingUp className="size-4" />
-                ⚠️ Демо режим
+                ✅ Реальный поиск активен
               </p>
-              <p className="mt-1 text-xs">
-                Сейчас показаны демо-данные. Ссылки ведут на страницу поиска OLX. 
-                Для реального поиска нужна интеграция с OLX API (см. OLX_REAL_SEARCH_GUIDE.md)
+              <p className="mt-1 text-xs opacity-90">
+                Данные загружаются с маркетплейсов в реальном времени. 
+                Backend сервер должен быть запущен (localhost:3002)
               </p>
             </div>
 

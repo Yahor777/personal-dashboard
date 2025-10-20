@@ -176,10 +176,32 @@
     @apply border-border outline-ring/50;
   }
 
+  html, body, #root {
+    height: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: contain;
+    text-rendering: optimizeLegibility;
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
   }
 }
+
+/* Safe area helpers */
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+.pb-safe { padding-bottom: max(1rem, var(--safe-bottom)); }
+.pt-safe { padding-top: max(0.5rem, var(--safe-top)); }
 
 /**
  * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.

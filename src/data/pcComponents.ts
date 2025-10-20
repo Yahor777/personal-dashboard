@@ -161,6 +161,30 @@ export const POPULAR_CPUS: CPUSpecs[] = [
     price: 850,
     performance: 95,
   },
+  {
+    id: 'intel-i7-14700kf',
+    name: 'Intel Core i7-14700KF',
+    brand: 'Intel',
+    socket: 'LGA1700',
+    tdp: 125,
+    generation: '14th Gen',
+    cores: 20,
+    threads: 28,
+    price: 1600,
+    performance: 110,
+  },
+  {
+    id: 'ryzen-9-7900x',
+    name: 'AMD Ryzen 9 7900X',
+    brand: 'AMD',
+    socket: 'AM5',
+    tdp: 170,
+    generation: 'Zen 4',
+    cores: 12,
+    threads: 24,
+    price: 2100,
+    performance: 125,
+  },
 ];
 
 // 🔌 Популярные материнские платы
@@ -336,6 +360,26 @@ export const POPULAR_GPUS: GPUSpecs[] = [
     performance: 82,
     price: 1300,
   },
+  {
+    id: 'rtx-4070-super',
+    name: 'Nvidia RTX 4070 Super 12GB',
+    brand: 'Nvidia',
+    vram: 12,
+    tdp: 220,
+    length: 268,
+    performance: 105,
+    price: 2800,
+  },
+  {
+    id: 'rx-7800-xt',
+    name: 'AMD RX 7800 XT 16GB',
+    brand: 'AMD',
+    vram: 16,
+    tdp: 265,
+    length: 280,
+    performance: 110,
+    price: 2600,
+  },
 ];
 
 // 🔋 Популярные блоки питания
@@ -364,6 +408,22 @@ export const POPULAR_PSUS: PSUSpecs[] = [
     modular: 'Fully Modular',
     price: 400,
   },
+  {
+    id: 'corsair-rm850x',
+    name: 'Corsair RM850x 850W',
+    wattage: 850,
+    efficiency: '80+ Gold',
+    modular: 'Fully Modular',
+    price: 520,
+  },
+  {
+    id: 'be-quiet-1000w',
+    name: 'be quiet! Dark Power 13 1000W',
+    wattage: 1000,
+    efficiency: '80+ Titanium',
+    modular: 'Fully Modular',
+    price: 880,
+  },
 ];
 
 // 📦 Популярные корпуса
@@ -384,6 +444,22 @@ export const POPULAR_CASES: CaseSpecs[] = [
     maxCPUCoolerHeight: 170,
     price: 350,
   },
+  {
+    id: 'lianli-o11d',
+    name: 'Lian Li O11 Dynamic EVO',
+    formFactor: ['ATX', 'Micro-ATX', 'Mini-ITX'],
+    maxGPULength: 422,
+    maxCPUCoolerHeight: 167,
+    price: 620,
+  },
+  {
+    id: 'fractal-nr200p',
+    name: 'Fractal Design Terra Mini-ITX',
+    formFactor: ['Mini-ITX'],
+    maxGPULength: 322,
+    maxCPUCoolerHeight: 77,
+    price: 780,
+  },
 ];
 
 // 💿 Популярные накопители
@@ -400,7 +476,28 @@ export const POPULAR_STORAGE: StorageSpecs[] = [
     name: 'Crucial P3 1TB NVMe',
     type: 'NVMe SSD',
     capacity: 1000,
-    price: 300,
+    price: 250,
+  },
+  {
+    id: 'samsung-990pro-2tb',
+    name: 'Samsung 990 Pro 2TB NVMe',
+    type: 'NVMe SSD',
+    capacity: 2000,
+    price: 850,
+  },
+  {
+    id: 'wd-black-sn850x-1tb',
+    name: 'WD Black SN850X 1TB NVMe',
+    type: 'NVMe SSD',
+    capacity: 1000,
+    price: 420,
+  },
+  {
+    id: 'seagate-barracuda-2tb',
+    name: 'Seagate Barracuda 2TB HDD',
+    type: 'HDD',
+    capacity: 2000,
+    price: 230,
   },
   {
     id: 'wd-blue-1tb',

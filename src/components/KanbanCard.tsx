@@ -45,8 +45,8 @@ export function KanbanCard({ card, onClick, isDragging = false }: KanbanCardProp
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`group cursor-pointer rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md ${
-        isDragging ? 'rotate-2 shadow-lg' : ''
+      className={`group cursor-pointer rounded-lg border-2 border-border bg-card/95 backdrop-blur-sm p-3 shadow-md hover:shadow-xl hover:border-primary/50 transition-all ${
+        isDragging ? 'rotate-2 shadow-2xl border-primary' : ''
       }`}
     >
       {/* Card Type Icon & Priority */}
@@ -58,7 +58,7 @@ export function KanbanCard({ card, onClick, isDragging = false }: KanbanCardProp
       </div>
 
       {/* Title */}
-      <h4 className="mb-2 line-clamp-2">{card.title}</h4>
+      <h4 className="mb-2 line-clamp-2 font-semibold text-foreground">{card.title}</h4>
 
       {/* Tags */}
       {card.tags && card.tags.length > 0 && (

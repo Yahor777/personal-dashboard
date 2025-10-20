@@ -1,0 +1,55 @@
+# Systemd Service для OLX Scraper
+# 
+# Инструкция по установке:
+# 1. Скопируйте этот файл в /etc/systemd/system/olx-scraper.service
+# 2. Измените пути и пользователя на свои
+# 3. Выполните: sudo systemctl daemon-reload
+# 4. Включите: sudo systemctl enable olx-scraper
+# 5. Запустите: sudo systemctl start olx-scraper
+# 6. Проверьте: sudo systemctl status olx-scraper
+
+[Unit]
+Description=OLX Scraper + Llama 4 AI Integration
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Пользователь и группа (измените на свои!)
+User=your-username
+Group=your-username
+
+# Рабочая директория (измените на путь к проекту!)
+WorkingDirectory=/path/to/olx-llama-scraper
+
+# Переменные окружения
+Environment="PATH=/path/to/olx-llama-scraper/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+
+# Команда запуска
+ExecStart=/path/to/olx-llama-scraper/venv/bin/python -m src.processor
+
+# Перезапуск при падении
+Restart=on-failure
+RestartSec=10s
+
+# Таймауты
+TimeoutStartSec=60s
+TimeoutStopSec=30s
+
+# Логирование
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=olx-scraper
+
+# Безопасность
+# Ограничиваем доступ к системе
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/path/to/olx-llama-scraper/data
+
+[Install]
+WantedBy=multi-user.target

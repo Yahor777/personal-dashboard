@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check, Settings2, Paperclip, FileText, Image as ImageIcon } from 'lucide-react';
+import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check, Settings2, Paperclip, FileText, Image as ImageIcon, Download, BookmarkPlus, ClipboardPlus } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AIService } from '../services/aiService';
 // AI Models configuration
@@ -89,8 +90,14 @@ const quickActions = [
   { icon: '💰', label: 'Оценка цены', prompt: 'Оцени, справедлива ли эта цена для данного компонента ПК:' },
 ];
 
+type FavoritePrompt = {
+  id: string;
+  title: string;
+  prompt: string;
+};
+
 export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
-  const { workspace, aiConversations, currentConversationId, addAIMessage, createAIConversation, deleteAIConversation, setCurrentConversation } = useStore();
+  const { workspace, aiConversations, currentConversationId, addAIMessage, createAIConversation, deleteAIConversation, setCurrentConversation, currentTabId, addCard } = useStore();
   const { t } = useTranslation(workspace.settings.language);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -101,10 +108,102 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [favoritePrompts, setFavoritePrompts] = useState<FavoritePrompt[]>(() => {
+    try {
+      const raw = localStorage.getItem('ai-favorite-prompts');
+      if (!raw) return [];
+      return JSON.parse(raw) as FavoritePrompt[];
+    } catch (error) {
+      console.error('Failed to load favorite prompts', error);
+      return [];
+    }
+  });
 
   const currentConversation = aiConversations.find(c => c.id === currentConversationId);
   const currentModel = FREE_AI_MODELS.find((m: AIModel) => m.model === workspace.settings.aiModel);
   const supportsFiles = currentModel?.supportsFiles || false;
+  const currentTab = workspace.tabs.find((tab) => tab.id === currentTabId) || null;
+  const defaultColumnId = currentTab?.columns[0]?.id ?? null;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ai-favorite-prompts', JSON.stringify(favoritePrompts));
+    } catch (error) {
+      console.error('Failed to save favorite prompts', error);
+    }
+  }, [favoritePrompts]);
+
+  const addFavoritePrompt = (title: string, prompt: string) => {
+    if (!title.trim() || !prompt.trim()) {
+      toast.error('Название и текст промпта не должны быть пустыми');
+      return;
+    }
+    const newPrompt: FavoritePrompt = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: title.trim(),
+      prompt: prompt.trim(),
+    };
+    setFavoritePrompts((prev) => [newPrompt, ...prev].slice(0, 20));
+    toast.success('Промпт сохранён');
+  };
+
+  const removeFavoritePrompt = (id: string) => {
+    setFavoritePrompts((prev) => prev.filter((item) => item.id !== id));
+    toast.info('Промпт удалён');
+  };
+
+  const handleSaveCurrentPrompt = () => {
+    if (!input.trim()) {
+      toast.error('Введите текст, который хотите сохранить');
+      return;
+    }
+    const title = window.prompt('Название промпта', input.substring(0, 40) || 'Мой промпт');
+    if (title) {
+      addFavoritePrompt(title, input);
+    }
+  };
+
+  const handleExportConversation = () => {
+    if (!currentConversation) {
+      toast.error('Нет сообщений для экспорта');
+      return;
+    }
+    const content = currentConversation.messages
+      .map((msg) => `${msg.role === 'user' ? '👤 Пользователь' : '🤖 AI'} (${new Date(msg.timestamp).toLocaleString()}):\n${msg.content}`)
+      .join('\n\n---\n\n');
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ai-conversation-${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Диалог экспортирован');
+  };
+
+  const handleSaveMessageToKanban = (message: AIMessage) => {
+    if (!defaultColumnId) {
+      toast.error('Нет активной доски или колонок для сохранения');
+      return;
+    }
+    const title = message.content.split('\n')[0].slice(0, 60) || 'Ответ AI';
+    addCard({
+      title,
+      description: message.content,
+      type: 'note',
+      priority: 'medium',
+      tags: ['ai', 'assistant'],
+      reminders: [],
+      attachments: [],
+      images: [],
+      checklist: [],
+      comments: [],
+      columnId: defaultColumnId,
+    });
+    toast.success('Добавлено в Kanban');
+  };
 
   useEffect(() => {
     // Auto-scroll to bottom on new messages
@@ -396,6 +495,24 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
           <Button variant="outline" size="sm" onClick={handleNewChat} className="h-8 w-8 md:h-9 md:w-auto p-0 md:px-3">
             <Plus className="size-4" />
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 md:h-9 md:w-auto p-0 md:px-3"
+            onClick={handleSaveCurrentPrompt}
+            title="Сохранить текущий текст как промпт"
+          >
+            <BookmarkPlus className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 md:h-9 md:w-auto p-0 md:px-3"
+            onClick={handleExportConversation}
+            title="Экспортировать диалог"
+          >
+            <Download className="size-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 md:h-9 md:w-9">
             <X className="size-4 md:size-5" />
           </Button>
@@ -446,24 +563,64 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
 
         {/* Chat Area */}
         <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Quick Actions */}
+          {/* Quick Actions / Favorites */}
           {!currentConversation || currentConversation.messages.length === 0 ? (
-            <div className="p-4 md:p-6 overflow-y-auto">
-              <h3 className="mb-3 md:mb-4 text-base md:text-lg">Быстрые действия</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                {quickActions.map((action, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleQuickAction(action.prompt)}
-                    className="flex items-center gap-2 md:gap-3 rounded-lg border border-border bg-card p-3 md:p-4 text-left transition-all hover:border-primary hover:shadow-md active:scale-95"
-                  >
-                    <span className="text-xl md:text-2xl shrink-0">{action.icon}</span>
-                    <span className="flex-1 text-sm md:text-base">{action.label}</span>
-                  </button>
-                ))}
+            <div className="p-4 md:p-6 overflow-y-auto space-y-6">
+              <div>
+                <h3 className="mb-3 md:mb-4 text-base md:text-lg">Быстрые действия</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                  {quickActions.map((action, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleQuickAction(action.prompt)}
+                      className="flex items-center gap-2 md:gap-3 rounded-lg border border-border bg-card p-3 md:p-4 text-left transition-all hover:border-primary hover:shadow-md active:scale-95"
+                    >
+                      <span className="text-xl md:text-2xl shrink-0">{action.icon}</span>
+                      <span className="flex-1 text-sm md:text-base">{action.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="mt-4 md:mt-6 rounded-lg bg-muted/50 p-3 md:p-4">
+              {favoritePrompts.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-base md:text-lg flex items-center gap-2">
+                    <BookmarkPlus className="size-4" />
+                    Избранные промпты
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                    {favoritePrompts.map((prompt) => (
+                      <Card key={prompt.id} className="border-border hover:border-primary transition-all">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-sm line-clamp-1">{prompt.title}</CardTitle>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeFavoritePrompt(prompt.id)}>
+                              <Trash2 className="size-3" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-xs text-muted-foreground">
+                          <p className="line-clamp-3 whitespace-pre-wrap">{prompt.prompt}</p>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleQuickAction(prompt.prompt)} className="flex-1">
+                              Вставить
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigator.clipboard.writeText(prompt.prompt).then(() => toast.success('Промпт скопирован'))}
+                            >
+                              <ClipboardPlus className="size-3" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-lg bg-muted/50 p-3 md:p-4">
                 <h4 className="mb-2 flex items-center gap-2 text-sm md:text-base">
                   <Zap className="size-4" />
                   Возможности AI
@@ -480,7 +637,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
               </div>
 
               {!workspace.settings.aiProvider || workspace.settings.aiProvider === 'none' ? (
-                <div className="mt-4 rounded-lg bg-yellow-500/10 p-4 text-yellow-600">
+                <div className="rounded-lg bg-yellow-500/10 p-4 text-yellow-600">
                   <p className="font-semibold mb-2">⚠️ AI не настроен</p>
                   <p className="text-sm">Перейдите в Настройки → AI для подключения:</p>
                   <ul className="text-sm mt-2 space-y-1">
@@ -497,84 +654,95 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
               <div className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full">
                   <div className="p-3 md:p-4 space-y-3 md:space-y-4" ref={scrollRef}>
-                  {currentConversation.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
+                    {currentConversation.messages.map((message) => (
                       <div
-                        className={`max-w-[90%] md:max-w-[80%] rounded-lg p-3 md:p-4 ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
+                        key={message.id}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            {message.role === 'assistant' && (
-                              <Badge variant="secondary" className="mb-2 text-xs">
-                                <Sparkles className="mr-1 size-3" />
-                                AI
-                              </Badge>
-                            )}
-                            {message.role === 'assistant' ? (
-                              <div className="prose prose-sm dark:prose-invert max-w-none break-words">
-                                <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm]}
-                                  rehypePlugins={[rehypeHighlight]}
-                                  components={{
-                                    // Custom styling for code blocks
-                                    code: ({ className, children, ...props }: any) => {
-                                      const match = /language-(\w+)/.exec(className || '');
-                                      return !match ? (
-                                        <code className="bg-muted px-1 py-0.5 rounded text-xs md:text-sm" {...props}>
-                                          {children}
-                                        </code>
-                                      ) : (
-                                        <code className={className} {...props}>
-                                          {children}
-                                        </code>
-                                      );
-                                    },
-                                    pre: ({ children, ...props }: any) => (
-                                      <pre className="overflow-x-auto max-w-full text-xs md:text-sm" {...props}>
-                                        {children}
-                                      </pre>
-                                    ),
-                                  }}
-                                >
-                                  {message.content}
-                                </ReactMarkdown>
-                              </div>
-                            ) : (
-                              <p className="whitespace-pre-wrap text-sm md:text-base break-words">{message.content}</p>
-                            )}
-                          </div>
-                          {message.role === 'assistant' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 shrink-0"
-                              onClick={() => handleCopyMessage(message.id, message.content)}
-                            >
-                              {copiedMessageId === message.id ? (
-                                <Check className="size-3 text-green-600" />
-                              ) : (
-                                <Copy className="size-3" />
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                        <p
-                          className={`mt-2 ${
-                            message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                        <div
+                          className={`max-w-[90%] md:max-w-[80%] rounded-lg p-3 md:p-4 ${
+                            message.role === 'user'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted'
                           }`}
                         >
-                          {new Date(message.timestamp).toLocaleTimeString('ru-RU', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              {message.role === 'assistant' && (
+                                <Badge variant="secondary" className="mb-2 text-xs">
+                                  <Sparkles className="mr-1 size-3" />
+                                  AI
+                                </Badge>
+                              )}
+                              {message.role === 'assistant' ? (
+                                <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                                  <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    rehypePlugins={[rehypeHighlight]}
+                                    components={{
+                                      // Custom styling for code blocks
+                                      code: ({ className, children, ...props }: any) => {
+                                        const match = /language-(\w+)/.exec(className || '');
+                                        return !match ? (
+                                          <code className="bg-muted px-1 py-0.5 rounded text-xs md:text-sm" {...props}>
+                                            {children}
+                                          </code>
+                                        ) : (
+                                          <code className={className} {...props}>
+                                            {children}
+                                          </code>
+                                        );
+                                      },
+                                      pre: ({ children, ...props }: any) => (
+                                        <pre className="overflow-x-auto max-w-full text-xs md:text-sm" {...props}>
+                                          {children}
+                                        </pre>
+                                      ),
+                                    }}
+                                  >
+                                    {message.content}
+                                  </ReactMarkdown>
+                                </div>
+                              ) : (
+                                <p className="whitespace-pre-wrap text-sm md:text-base break-words">{message.content}</p>
+                              )}
+                            </div>
+                            {message.role === 'assistant' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0"
+                                onClick={() => handleCopyMessage(message.id, message.content)}
+                              >
+                                {copiedMessageId === message.id ? (
+                                  <Check className="size-3 text-green-600" />
+                                ) : (
+                                  <Copy className="size-3" />
+                                )}
+                              </Button>
+                            )}
+                            {message.role === 'assistant' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0"
+                                onClick={() => handleSaveMessageToKanban(message)}
+                                title="Сохранить ответ в Kanban"
+                              >
+                                <FileText className="size-3" />
+                              </Button>
+                            )}
+                          </div>
+                          <p
+                            className={`mt-2 ${
+                              message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                            }`}
+                          >
+                            {new Date(message.timestamp).toLocaleTimeString('ru-RU', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
                       </div>
                     </div>
                   ))}

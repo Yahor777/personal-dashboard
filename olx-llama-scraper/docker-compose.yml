@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  olx-scraper:
+    build: .
+    container_name: olx-scraper
+    restart: unless-stopped
+    
+    # Монтируем .env файл
+    env_file:
+      - .env
+    
+    # Переменные окружения (можно переопределить)
+    environment:
+      - PLAYWRIGHT_HEADLESS=true
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+    
+    # Монтируем volumes для сохранения данных
+    volumes:
+      - ./data:/app/data
+      - ./manual_review.json:/app/manual_review.json
+      - ./logs:/app/data/logs
+    
+    # Ограничения ресурсов (опционально)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    
+    # Логирование
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Сеть
+    networks:
+      - scraper-network
+
+# Сеть для изоляции
+networks:
+  scraper-network:
+    driver: bridge
+
+# Volumes для persistent данных
+volumes:
+  scraper-data:
+    driver: local

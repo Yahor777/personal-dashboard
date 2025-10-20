@@ -9,12 +9,14 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { ImportExportPanel } from './components/ImportExportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { AIAssistantPanel } from './components/AIAssistantPanel';
-import { OLXSearchPanel } from './components/OLXSearchPanel';
-import { PCBuilderPanel } from './components/PCBuilderPanel';
-import { PythonLearningPanel } from './components/PythonLearningPanel';
+import { PCBuildCalculator } from './components/PCBuildCalculator';
+import { PythonTracker } from './components/PythonTracker';
+import { CS2GameTracker } from './components/CS2GameTracker';
+import { QuickNavigation } from './components/QuickNavigation';
 import { OnboardingOverlay } from './components/OnboardingOverlay';
 import { LoginRegisterModal } from './components/LoginRegisterModal';
 import { EmptyState } from './components/EmptyState';
+import { MobileNav } from './components/MobileNav';
 import { Toaster } from './components/ui/sonner';
 import { useStore } from './store/useStore';
 import { database, auth } from './config/firebase';
@@ -32,6 +34,7 @@ export default function App() {
   const [showOLXSearch, setShowOLXSearch] = useState(false);
   const [showPCBuilder, setShowPCBuilder] = useState(false);
   const [showPythonLearning, setShowPythonLearning] = useState(false);
+  const [showCS2Tracker, setShowCS2Tracker] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Handle Google Sign-In
@@ -290,6 +293,31 @@ export default function App() {
     );
   }
 
+  // Handle quick navigation
+  const handleQuickNavigate = (page: string) => {
+    // Close all panels first
+    setShowSettings(false);
+    setShowImportExport(false);
+    setShowAnalytics(false);
+    setShowAI(false);
+    setShowOLXSearch(false);
+    setShowPCBuilder(false);
+    setShowPythonLearning(false);
+    setShowCS2Tracker(false);
+    
+    // Open the requested page
+    switch (page) {
+      case 'settings': setShowSettings(true); break;
+      case 'analytics': setShowAnalytics(true); break;
+      case 'ai': setShowAI(true); break;
+      case 'olx': setShowOLXSearch(true); break;
+      case 'pcbuilder': setShowPCBuilder(true); break;
+      case 'python': setShowPythonLearning(true); break;
+      case 'cs2': setShowCS2Tracker(true); break;
+      case 'import': setShowImportExport(true); break;
+    }
+  };
+
   // Show login/register modal if not authenticated
   if (!authState.isAuthenticated) {
     return (
@@ -307,6 +335,31 @@ export default function App() {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden bg-background">
+        {/* Mobile Navigation */}
+        <MobileNav
+          currentTab={showOLXSearch ? 'olx' : showAI ? 'ai' : 'dashboard'}
+          onTabChange={(tab) => {
+            if (tab === 'dashboard') {
+              setShowOLXSearch(false);
+              setShowAI(false);
+              setShowSettings(false);
+            } else if (tab === 'olx') {
+              setShowOLXSearch(true);
+              setShowAI(false);
+              setShowSettings(false);
+            } else if (tab === 'ai') {
+              setShowAI(true);
+              setShowOLXSearch(false);
+              setShowSettings(false);
+            }
+          }}
+          onOpenSettings={() => setShowSettings(true)}
+          onOpenOLX={() => setShowOLXSearch(true)}
+          onOpenAI={() => setShowAI(true)}
+        />
+
+        {/* Desktop Sidebar (Hidden on Mobile) */}
+        <div className="hidden md:block">
         <AppSidebar
           onOpenSettings={() => {
             setShowSettings(true);
@@ -316,6 +369,7 @@ export default function App() {
             setShowOLXSearch(false);
             setShowPCBuilder(false);
             setShowPythonLearning(false);
+            setShowCS2Tracker(false);
           }}
           onOpenImportExport={() => {
             setShowImportExport(true);
@@ -325,6 +379,7 @@ export default function App() {
             setShowOLXSearch(false);
             setShowPCBuilder(false);
             setShowPythonLearning(false);
+            setShowCS2Tracker(false);
           }}
           onOpenAnalytics={() => {
             setShowAnalytics(true);
@@ -334,15 +389,17 @@ export default function App() {
             setShowOLXSearch(false);
             setShowPCBuilder(false);
             setShowPythonLearning(false);
+            setShowCS2Tracker(false);
           }}
           onOpenAI={() => {
-            setShowOLXSearch(false);
+            setShowAI(true);
             setShowAnalytics(false);
             setShowImportExport(false);
             setShowSettings(false);
-            setShowAI(true);
+            setShowOLXSearch(false);
             setShowPCBuilder(false);
             setShowPythonLearning(false);
+            setShowCS2Tracker(false);
           }}
           onOpenOLXSearch={() => {
             setShowAI(false);
@@ -352,6 +409,7 @@ export default function App() {
             setShowOLXSearch(true);
             setShowPCBuilder(false);
             setShowPythonLearning(false);
+            setShowCS2Tracker(false);
           }}
           onOpenPCBuilder={() => {
             setShowAI(false);
@@ -361,6 +419,7 @@ export default function App() {
             setShowOLXSearch(false);
             setShowPCBuilder(true);
             setShowPythonLearning(false);
+            setShowCS2Tracker(false);
           }}
           onOpenPythonLearning={() => {
             setShowAI(false);
@@ -370,10 +429,22 @@ export default function App() {
             setShowOLXSearch(false);
             setShowPCBuilder(false);
             setShowPythonLearning(true);
+            setShowCS2Tracker(false);
+          }}
+          onOpenCS2Tracker={() => {
+            setShowAI(false);
+            setShowAnalytics(false);
+            setShowImportExport(false);
+            setShowSettings(false);
+            setShowOLXSearch(false);
+            setShowPCBuilder(false);
+            setShowPythonLearning(false);
+            setShowCS2Tracker(true);
           }}
         />
+        </div>
 
-        <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
+        <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden pt-14 pb-16 md:pt-0 md:pb-0">
           {currentTab ? (
             <KanbanBoard 
               tabId={currentTab.id} 
@@ -398,6 +469,7 @@ export default function App() {
         </main>
 
         {/* Overlays & Panels */}
+        <QuickNavigation onNavigate={handleQuickNavigate} />
         <OnboardingOverlay />
         
         {selectedCard && (
@@ -411,9 +483,10 @@ export default function App() {
         {showImportExport && <ImportExportPanel onClose={() => setShowImportExport(false)} />}
         {showAnalytics && <AnalyticsPanel onClose={() => setShowAnalytics(false)} />}
         {showAI && <AIAssistantPanel onClose={() => setShowAI(false)} />}
-        {showOLXSearch && <OLXSearchPanel onClose={() => setShowOLXSearch(false)} />}
-        {showPCBuilder && <PCBuilderPanel onClose={() => setShowPCBuilder(false)} />}
-        {showPythonLearning && <PythonLearningPanel onClose={() => setShowPythonLearning(false)} />}
+        {/* OLXMarketplace temporarily disabled for refactor */}
+        {showPCBuilder && <PCBuildCalculator onClose={() => setShowPCBuilder(false)} />}
+        {showPythonLearning && <PythonTracker onClose={() => setShowPythonLearning(false)} />}
+        {showCS2Tracker && <CS2GameTracker onClose={() => setShowCS2Tracker(false)} />}
 
         <Toaster />
       </div>

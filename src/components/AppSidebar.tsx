@@ -37,9 +37,10 @@ interface AppSidebarProps {
   onOpenOLXSearch: () => void;
   onOpenPCBuilder: () => void;
   onOpenPythonLearning: () => void;
+  onOpenCS2Tracker: () => void;
 }
 
-export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics, onOpenAI, onOpenOLXSearch, onOpenPCBuilder, onOpenPythonLearning }: AppSidebarProps) {
+export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics, onOpenAI, onOpenOLXSearch, onOpenPCBuilder, onOpenPythonLearning, onOpenCS2Tracker }: AppSidebarProps) {
   const { workspace, currentTabId, setCurrentTab, addTab, deleteTab, updateTab, authState, logout } = useStore();
   const { t } = useTranslation(workspace.settings.language);
   const [isNewTabDialogOpen, setIsNewTabDialogOpen] = useState(false);
@@ -166,6 +167,12 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
               <SidebarMenuButton onClick={onOpenPythonLearning} className="text-green-600">
                 <Code2 className="size-4" />
                 <span>🐍 Python Roadmap</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={onOpenCS2Tracker} className="text-orange-600">
+                <Cpu className="size-4" />
+                <span>🎮 CS2 Tracker</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
