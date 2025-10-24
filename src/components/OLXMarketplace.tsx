@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { X, Search, MapPin, Tag, DollarSign, Eye, ExternalLink, Star, TrendingUp, Filter, Clock, Heart, Bookmark, History, Grid, List, ChevronLeft, ChevronRight, BarChart3, Download, Loader2, AlertCircle, RefreshCw, Share2, Award, ThumbsUp, ThumbsDown, Zap, AlertTriangle, Cpu, MonitorSmartphone, Gauge, Sparkles, Truck } from 'lucide-react';
+import { X, Search, MapPin, Tag, DollarSign, Eye, ExternalLink, Star, TrendingUp, Filter, Clock, Heart, Bookmark, History, Grid, List, ChevronLeft, ChevronRight, BarChart3, Download, Loader2, AlertCircle, RefreshCw, Share2, Award, ThumbsUp, ThumbsDown, Zap, AlertTriangle, Cpu, MonitorSmartphone, Gauge, Sparkles, Truck, ShoppingCart } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -13,6 +13,7 @@ import { POLISH_CITIES, ITEM_CONDITIONS, PRICE_PRESETS, OLX_CATEGORIES, SELLER_T
 import { filterOLXListings, type OLXListing } from '../data/mockOLXData';
 import { analyzeOffer, getTopOffers, getOffersToAvoid, type AIRecommendation } from '../utils/aiAnalyzer';
 import { savePreference, getPreferenceForListing, getPreferenceStats } from '../utils/userPreferences';
+import { smoothScrollTo } from '../utils/scroll';
 
 interface OLXMarketplaceProps {
   onClose: () => void;
@@ -116,7 +117,8 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
   const checkBackendStatus = async () => {
     setBackendStatus('checking');
     try {
-      const response = await fetch('http://localhost:3002/health', {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+      const response = await fetch(`${backendUrl}/health`, {
         method: 'GET',
       });
       if (response.ok) {
@@ -866,7 +868,7 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
     
     try {
       // Пытаемся загрузить реальные данные от backend
-      const backendUrl = 'http://localhost:3002';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
       
       const requestBody = {
         query: searchQuery || '',
@@ -875,7 +877,8 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
         maxPrice: maxPrice || undefined,
         category: selectedCategory,
         location: selectedCity !== 'all' ? selectedCity : undefined,
-        withDelivery: withDelivery, // 🚚 Фильтр доставки
+        withDelivery: withDelivery,
+        maxPages: 3,
       };
       
       console.log('[Frontend] Sending search request:', requestBody);
@@ -1084,7 +1087,7 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    smoothScrollTo(window, { top: 0 });
   };
 
   // Calculate statistics
@@ -1208,7 +1211,7 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    smoothScrollTo(window, { top: 0 });
   };
 
   const calculateAveragePrice = (listings: OLXListing[]) => {
@@ -1233,7 +1236,47 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
   const riskyRecommendations = results.length > 0 ? getOffersToAvoid(results) : [];
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div data-panel="true" className="fixed inset-0 z-50 flex flex-col bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border p-4 pt-safe">
+        <div className="flex items-center gap-3">
+          <ShoppingCart className="size-6 text-primary" />
+          <div>
+            <h2 className="text-xl font-bold">🛒 OLX Marketplace</h2>
+            <p className="text-sm text-muted-foreground">Поиск комплектующих по Польше</p>
+          </div>
+        </div>
+        <div className="hidden md:flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={exportToCSV}>
+            <Download className="size-4 mr-2" />
+            CSV
+          </Button>
+          <Button size="sm" variant="outline" onClick={shareSearch}>
+            <Share2 className="size-4 mr-2" />
+            Поделиться
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setShowComparison(true)} disabled={comparisonList.size === 0}>
+            <BarChart3 className="size-4 mr-2" />
+            Сравнение
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleOpenOnOLX()}>
+            <ExternalLink className="size-4 mr-2" />
+            OLX
+          </Button>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="size-5" />
+        </Button>
+      </div>
+
+      {/* Filters Toolbar */}
+      <div className="border-b border-border bg-muted/50">
+        {renderQuickFilters()}
+      </div>
+
+      {/* Content */}
+      <ScrollArea className="flex-1 pb-safe">
+        <div className="px-4">
   {results.length > 0 && (
     <div className="px-4 pt-4 text-sm text-muted-foreground flex flex-wrap items-center gap-2">
       <span>Найдено: {results.length} объявлений</span>
@@ -1375,7 +1418,7 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
             )}
             {!isSearching && (
               <>
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4' : 'space-y-3'}>
                 {paginatedResults.map((listing, index) => (
                   <Card key={`${listing.id}-${index}`} className="hover:border-primary cursor-pointer transition-all group hover:shadow-lg">
                     <CardHeader className="p-0">
@@ -1383,7 +1426,7 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
                         <img
                           src={listing.image}
                           alt={listing.title}
-                          className="w-full h-40 object-cover rounded-t-lg"
+                          className="w-full h-32 md:h-40 object-cover rounded-t-lg"
                           onError={(e) => {
                             e.currentTarget.src = 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=800&q=80';
                           }}
@@ -1442,7 +1485,7 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
                       </CardTitle>
 
                       <div className="mb-2">
-                        <div className="text-lg font-bold text-green-600">
+                        <div className="text-base md:text-lg font-bold text-green-600">
                           {listing.price} {listing.currency}
                         </div>
                         <div className="text-[10px] text-muted-foreground flex items-center gap-0.5">
@@ -1793,7 +1836,7 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="overflow-x-auto" data-scroll-x>
               {comparisonList.size === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   Добавьте товары для сравнения, нажав на кнопку 📊 на карточках
@@ -1907,6 +1950,8 @@ export function OLXMarketplace({ onClose }: OLXMarketplaceProps) {
           </Card>
         </div>
       )}
-    </div>
+          </div>
+        </ScrollArea>
+      </div>
   );
 }

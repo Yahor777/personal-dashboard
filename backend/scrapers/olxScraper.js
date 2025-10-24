@@ -165,6 +165,15 @@ async function scrapeSinglePage(url, pageNumber) {
           image = imageEl.attr('data-src') || image;
         }
 
+        // Extract multiple images from srcset if available
+        const srcset = imageEl.attr('srcset') || '';
+        const srcCandidates = srcset
+          .split(',')
+          .map(s => s.trim().split(' ')[0])
+          .filter(Boolean);
+        // Build unique images array preferring main image first
+        const images = Array.from(new Set([image, ...srcCandidates].filter(Boolean)));
+
         // Build full URL
         const fullUrl = href.startsWith('http') ? href : `https://www.olx.pl${href}`;
 
@@ -181,6 +190,7 @@ async function scrapeSinglePage(url, pageNumber) {
           location: itemLocation,
           url: fullUrl,
           image: image || 'https://via.placeholder.com/400x300?text=No+Image',
+          images: images.length ? images : [image || 'https://via.placeholder.com/400x300?text=No+Image'],
           description: `${title} - ${itemLocation}`,
           marketplace: 'olx',
           scrapedAt: new Date().toISOString(),

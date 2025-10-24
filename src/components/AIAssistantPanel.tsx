@@ -430,6 +430,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
   return (
     <div 
       ref={panelRef}
+      data-panel="true"
       className="fixed inset-y-0 right-0 z-50 flex flex-col border-l border-border bg-background shadow-2xl"
       style={{ width: window.innerWidth <= 768 ? '100vw' : `${panelWidth}px` }}
     >
@@ -453,7 +454,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
         onChange={handleFileSelect}
       />
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-3 md:p-4 gap-2">
+      <div className="flex items-center justify-between border-b border-border p-3 md:p-4 gap-2 pt-safe">
         <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           <Sparkles className="size-4 md:size-5 text-primary shrink-0" />
           <h2 className="text-sm md:text-base truncate">{t('aiAssistant')}</h2>
@@ -522,7 +523,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
       <div className="flex flex-1 overflow-hidden">
         {/* Conversations Sidebar - скрываем на мобильных */}
         <div className="hidden md:flex w-64 border-r border-border bg-muted/30 p-2">
-          <ScrollArea className="h-full w-full">
+          <ScrollArea className="h-full w-full pb-safe">
             <div className="space-y-1">
               {aiConversations.map((conv) => (
                 <button
@@ -652,7 +653,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
             <>
               {/* Messages */}
               <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
+                <ScrollArea className="h-full pb-safe">
                   <div className="p-3 md:p-4 space-y-3 md:space-y-4" ref={scrollRef}>
                     {currentConversation.messages.map((message) => (
                       <div
@@ -694,7 +695,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                                         );
                                       },
                                       pre: ({ children, ...props }: any) => (
-                                        <pre className="overflow-x-auto max-w-full text-xs md:text-sm" {...props}>
+                                        <pre className="overflow-x-auto max-w-full text-xs md:text-sm" data-scroll-x {...props}>
                                           {children}
                                         </pre>
                                       ),

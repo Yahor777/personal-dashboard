@@ -23,6 +23,20 @@ import { database, auth } from './config/firebase';
 import { ref, onValue, set } from 'firebase/database';
 import { onAuthStateChanged } from 'firebase/auth';
 import type { Card } from './types';
+import DemoPage from './app/page';
+import AppHeader from './components/AppHeader';
+import { Suspense, lazy } from 'react';
+import { useScrollRestoration, attachSmoothScrollLinks } from "./utils/scroll";
+
+// Lazy-loaded panels (remove heavy imports from initial bundle)
+const SettingsPanelLazy = lazy(() => import('./components/SettingsPanel').then(m => ({ default: m.SettingsPanel })));
+const ImportExportPanelLazy = lazy(() => import('./components/ImportExportPanel').then(m => ({ default: m.ImportExportPanel })));
+const AnalyticsPanelLazy = lazy(() => import('./components/AnalyticsPanel').then(m => ({ default: m.AnalyticsPanel })));
+const AIAssistantPanelLazy = lazy(() => import('./components/AIAssistantPanel').then(m => ({ default: m.AIAssistantPanel })));
+const OLXSearchPanelLazy = lazy(() => import('./components/OLXSearchPanel').then(m => ({ default: m.OLXSearchPanel })));
+const PCBuildCalculatorLazy = lazy(() => import('./components/PCBuildCalculator').then(m => ({ default: m.PCBuildCalculator })));
+const PythonTrackerLazy = lazy(() => import('./components/PythonTracker').then(m => ({ default: m.PythonTracker })));
+const CS2GameTrackerLazy = lazy(() => import('./components/CS2GameTracker').then(m => ({ default: m.CS2GameTracker })));
 
 export default function App() {
   const { workspace, currentTabId, setCurrentTab, authState, register, login } = useStore();
@@ -89,6 +103,24 @@ export default function App() {
     console.log('🔥 Инициализация Firebase Auth...');
     console.log('Firebase Auth URL:', auth.config.apiHost);
     console.log('Firebase Project ID:', auth.config.apiKey.substring(0, 10) + '...');
+
+    // Guest mode: skip auth entirely if flag set
+    if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
+      useStore.setState({
+        authState: {
+          isAuthenticated: true,
+          currentUser: {
+            id: 'guest',
+            email: 'guest@example.com',
+            name: 'Guest',
+            avatar: null,
+            createdAt: new Date().toISOString(),
+          },
+        },
+      });
+      setIsAuthLoading(false);
+      return;
+    }
     
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -221,6 +253,12 @@ export default function App() {
     }
   }, [currentTabId, workspace.tabs, setCurrentTab]);
 
+  // Initialize smooth scrolling links and scroll restoration
+  useEffect(() => {
+    useScrollRestoration();
+    attachSmoothScrollLinks();
+  }, []);
+
   const currentTab = workspace.tabs?.find((tab) => tab.id === currentTabId);
 
   // Keyboard shortcuts
@@ -280,6 +318,11 @@ export default function App() {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [currentTabId, currentTab]);
+
+  // Маршрут демо для Aceternity + shadcn (без авторизации)
+  if (typeof window !== 'undefined' && window.location.hash === '#/demo') {
+    return <DemoPage />;
+  }
 
   // Show loading screen while checking auth state
   if (isAuthLoading) {
@@ -357,6 +400,11 @@ export default function App() {
           onOpenOLX={() => setShowOLXSearch(true)}
           onOpenAI={() => setShowAI(true)}
         />
+
+        {/* Desktop Header */}
+        <div className="hidden md:block w-full">
+          <AppHeader />
+        </div>
 
         {/* Desktop Sidebar (Hidden on Mobile) */}
         <div className="hidden md:block">
@@ -444,7 +492,7 @@ export default function App() {
         />
         </div>
 
-        <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden pt-14 pb-16 md:pt-0 md:pb-0">
+        <main className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden pt-14 pb-bottom-nav md:pt-0 md:pb-0">
           {currentTab ? (
             <KanbanBoard 
               tabId={currentTab.id} 
@@ -479,14 +527,47 @@ export default function App() {
           />
         )}
 
-        {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
-        {showImportExport && <ImportExportPanel onClose={() => setShowImportExport(false)} />}
-        {showAnalytics && <AnalyticsPanel onClose={() => setShowAnalytics(false)} />}
-        {showAI && <AIAssistantPanel onClose={() => setShowAI(false)} />}
+        {showSettings && (
+          <Suspense fallback={<div className="p-4">Загрузка настроек...</div>}>
+            <SettingsPanelLazy onClose={() => setShowSettings(false)} />
+          </Suspense>
+        )}
+        {showImportExport && (
+          <Suspense fallback={<div className="p-4">Загрузка импорта/экспорта...</div>}>
+            <ImportExportPanelLazy onClose={() => setShowImportExport(false)} />
+          </Suspense>
+        )}
+        {showAnalytics && (
+          <Suspense fallback={<div className="p-4">Загрузка аналитики...</div>}>
+            <AnalyticsPanelLazy onClose={() => setShowAnalytics(false)} />
+          </Suspense>
+        )}
+        {showAI && (
+          <Suspense fallback={<div className="p-4">Загрузка AI ассистента...</div>}>
+            <AIAssistantPanelLazy onClose={() => setShowAI(false)} />
+          </Suspense>
+        )}
+        {showOLXSearch && (
+          <Suspense fallback={<div className="p-4">Загрузка поиска OLX...</div>}>
+            <OLXSearchPanelLazy onClose={() => setShowOLXSearch(false)} />
+          </Suspense>
+        )}
         {/* OLXMarketplace temporarily disabled for refactor */}
-        {showPCBuilder && <PCBuildCalculator onClose={() => setShowPCBuilder(false)} />}
-        {showPythonLearning && <PythonTracker onClose={() => setShowPythonLearning(false)} />}
-        {showCS2Tracker && <CS2GameTracker onClose={() => setShowCS2Tracker(false)} />}
+        {showPCBuilder && (
+          <Suspense fallback={<div className="p-4">Загрузка калькулятора ПК...</div>}>
+            <PCBuildCalculatorLazy onClose={() => setShowPCBuilder(false)} />
+          </Suspense>
+        )}
+        {showPythonLearning && (
+          <Suspense fallback={<div className="p-4">Загрузка Python панели...</div>}>
+            <PythonTrackerLazy onClose={() => setShowPythonLearning(false)} />
+          </Suspense>
+        )}
+        {showCS2Tracker && (
+          <Suspense fallback={<div className="p-4">Загрузка CS2 трекера...</div>}>
+            <CS2GameTrackerLazy onClose={() => setShowCS2Tracker(false)} />
+          </Suspense>
+        )}
 
         <Toaster />
       </div>

@@ -96,9 +96,9 @@ export function ImportExportPanel({ onClose }: ImportExportPanelProps) {
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl">
+    <div data-panel="true" className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex items-center justify-between border-b border-border p-4 pt-safe">
         <h2>Импорт/Экспорт данных</h2>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="size-5" />
@@ -106,7 +106,7 @@ export function ImportExportPanel({ onClose }: ImportExportPanelProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-6 pb-safe">
         <div className="space-y-6">
           {/* Alerts */}
           {error && (
@@ -202,7 +202,7 @@ export function ImportExportPanel({ onClose }: ImportExportPanelProps) {
           <div>
             <h3 className="mb-4">JSON Schema</h3>
             <div className="rounded-lg bg-muted p-4">
-              <pre className="overflow-x-auto text-xs">
+              <pre className="overflow-x-auto text-xs" data-scroll-x>
 {`{
   "id": "string",
   "name": "string",

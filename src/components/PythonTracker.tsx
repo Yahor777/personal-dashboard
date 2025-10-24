@@ -160,9 +160,9 @@ export function PythonTracker({ onClose }: PythonTrackerProps) {
   const progress = Math.round((completedCount / totalTopics) * 100);
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-5xl flex-col border-l border-border bg-background shadow-2xl">
+    <div data-panel="true" className="fixed inset-y-0 right-0 z-50 flex w-full max-w-5xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex items-center justify-between border-b border-border p-4 pt-safe">
         <div className="flex items-center gap-3">
           <Code2 className="size-5 text-primary" />
           <div>
@@ -224,7 +224,7 @@ export function PythonTracker({ onClose }: PythonTrackerProps) {
         </TabsList>
 
         <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full pb-safe">
             <div className="p-6">
             <TabsContent value="roadmap" className="mt-0 space-y-4">
               {PYTHON_ROADMAP.map((section) => {
@@ -312,7 +312,7 @@ export function PythonTracker({ onClose }: PythonTrackerProps) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <pre className="p-4 rounded-lg bg-muted text-sm overflow-x-auto">
+                    <pre className="p-4 rounded-lg bg-muted text-sm overflow-x-auto" data-scroll-x>
                       <code>{snippet.code}</code>
                     </pre>
                     <Button

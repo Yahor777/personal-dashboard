@@ -1,203 +1,174 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import { scrapeOLX } from './scrapers/olxScraper.js';
-import { scrapeOLXWithPuppeteer } from './scrapers/olxScraperPuppeteer.js';
-import { scrapeCeneo } from './scrapers/ceneoScraper.js';
-import { scrapeXkom } from './scrapers/xkomScraper.js';
-import cache from './utils/cache.js';
 import RateLimiter from './utils/rateLimiter.js';
-import { generateProducts } from './utils/aiProductGenerator.js';
-
-// Load environment variables
-dotenv.config();
+import cache from './utils/cache.js';
+import { scrapeOLXWithPuppeteer, closeBrowser as closePuppeteerBrowser } from './scrapers/olxScraperPuppeteer.js';
+import scrapeXkom from './scrapers/xkomScraper.js';
+import scrapeCeneo from './scrapers/ceneoScraper.js';
 
 const app = express();
-const PORT = process.env.PORT || 3002;
-const rateLimiter = new RateLimiter(parseInt(process.env.MAX_REQUESTS_PER_MINUTE) || 10);
+const PORT = process.env.PORT || 4000;
 
-// Middleware
-app.use(express.json());
-
-// CORS Configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'https://yahor777.github.io'
-];
-
+// CORS
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return cb(null, true);
     }
+    return cb(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
 
-// Rate limiting middleware
+app.use(express.json());
+
+// Rate Limiter
+const maxPerMinute = parseInt(process.env.MAX_REQUESTS_PER_MINUTE || '60', 10);
+const limiter = new RateLimiter(maxPerMinute);
 app.use((req, res, next) => {
-  const ip = req.ip || req.connection.remoteAddress;
-  const limitCheck = rateLimiter.checkLimit(ip);
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
+  const { allowed, waitTime, remaining } = limiter.checkLimit(Array.isArray(ip) ? ip[0] : ip);
+  res.setHeader('X-RateLimit-Limit', String(limiter.maxRequests));
+  res.setHeader('X-RateLimit-Remaining', String(remaining));
+  if (!allowed) {
+    return res.status(429).json({ ok: false, error: `Rate limit exceeded. Try again in ${waitTime}s` });
+  }
+  return next();
+});
+// Optional periodic cleanup
+setInterval(() => limiter.cleanup(), 30_000).unref();
 
-  if (!limitCheck.allowed) {
-    return res.status(429).json({
-      error: 'Too many requests',
-      message: `Rate limit exceeded. Please wait ${limitCheck.waitTime} seconds.`,
-      waitTime: limitCheck.waitTime,
-    });
+// Cache TTL from env
+const cacheTTL = parseInt(process.env.CACHE_TTL || '120', 10);
+
+app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
+app.get('/api/search', async (req, res) => {
+  const {
+    q = '',
+    marketplace = 'olx',
+    minPrice,
+    maxPrice,
+    withDelivery,
+    location = 'all',
+    maxPages = '2',
+  } = req.query;
+
+  const cacheKey = cache.generateKey(q, { marketplace, minPrice, maxPrice, withDelivery, location, maxPages });
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return res.json({ ok: true, cached: true, results: cached });
   }
 
-  // Add rate limit headers
-  res.setHeader('X-RateLimit-Remaining', limitCheck.remaining);
-  next();
-});
-
-// Health check
-app.get('/health', (req, res) => {
-  const cacheStats = cache.stats();
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    cache: cacheStats,
-  });
-});
-
-// Search endpoint (POST)
-app.post('/api/search', async (req, res) => {
   try {
-    const { query, marketplace, minPrice, maxPrice, category, location, withDelivery } = req.body;
-
-    // Validation
-    if (!marketplace) {
-      return res.status(400).json({
-        error: 'Missing required parameters',
-        message: 'marketplace is required',
-      });
-    }
-    
-    // Query может быть пустым - показываем все результаты
-    const searchQuery = query || '';
-
-    // Generate cache key
-    const cacheKey = cache.generateKey(query, { marketplace, minPrice, maxPrice, category, location, withDelivery });
-    
-    // Check cache
-    const cached = cache.get(cacheKey);
-    if (cached) {
-      return res.json({
-        results: cached,
-        count: cached.length,
-        source: 'cache',
-        marketplace,
-      });
-    }
-
-    // Scrape based on marketplace
     let results = [];
-    const options = { minPrice, maxPrice, category, location, withDelivery, maxPages: 3 };
 
-    switch (marketplace) {
-      case 'olx':
-        // 🌐 РЕАЛЬНЫЙ ПАРСИНГ OLX
-        console.log('[Server] OLX: Real scraping with Puppeteer...');
-        results = await scrapeOLXWithPuppeteer(searchQuery, options);
-        
-        if (!results || results.length === 0) {
-          console.log('[Server] ⚠️ No results from Puppeteer - check selectors!');
-        }
-        break;
-      case 'ceneo':
-        results = await scrapeCeneo(searchQuery, options);
-        break;
-      case 'xkom':
-        results = await scrapeXkom(searchQuery, options);
-        break;
-      case 'mediaexpert':
-        // TODO: Implement MediaExpert scraper
-        results = [];
-        break;
-      default:
-        return res.status(400).json({
-          error: 'Invalid marketplace',
-          message: `Marketplace "${marketplace}" is not supported`,
-        });
+    if (marketplace === 'olx') {
+      // Встроенный ретрай запроса к скраперу для стабильности
+      results = await withRetries(
+        () => scrapeOLXWithPuppeteer(q, {
+          minPrice,
+          maxPrice,
+          withDelivery: String(withDelivery) === 'true' || withDelivery === '1',
+          location,
+          maxPages: Math.max(1, Math.min(5, parseInt(maxPages, 10) || 2)),
+        }),
+        { retries: 1, delayMs: 1500 }
+      );
+    } else if (marketplace === 'xkom') {
+      results = await scrapeXkom(q, { minPrice, maxPrice });
+    } else if (marketplace === 'ceneo') {
+      results = await scrapeCeneo(q, { minPrice, maxPrice });
+    } else {
+      return res.status(400).json({ ok: false, error: 'Unsupported marketplace' });
     }
 
-    // Apply additional filters
-    results = applyFilters(results, { minPrice, maxPrice, location });
-
-    // Cache results
-    const cacheTTL = parseInt(process.env.CACHE_TTL) || 300;
     cache.set(cacheKey, results, cacheTTL);
-
-    res.json({
-      results,
-      count: results.length,
-      source: 'live',
-      marketplace,
-    });
+    return res.json({ ok: true, cached: false, results });
   } catch (error) {
-    console.error('Search error:', error);
-    res.status(500).json({
-      error: 'Search failed',
-      message: error.message,
-    });
+    console.error('[API /api/search] Error:', error);
+    return res.status(500).json({ ok: false, error: error.message || 'Internal Error' });
   }
 });
 
-// Clear cache endpoint (for admin/debugging)
-app.post('/api/cache/clear', (req, res) => {
-  cache.clear();
-  res.json({ message: 'Cache cleared' });
+// Дополнительный POST-маршрут для совместимости с фронтендом
+app.post('/api/search', async (req, res) => {
+  const q = req.body?.query ?? req.body?.q ?? '';
+  const marketplace = req.body?.marketplace ?? 'olx';
+  const minPrice = req.body?.minPrice;
+  const maxPrice = req.body?.maxPrice;
+  const withDelivery = req.body?.withDelivery;
+  const location = req.body?.location ?? 'all';
+  const maxPages = String(req.body?.maxPages ?? '2');
+
+  const cacheKey = cache.generateKey(q, { marketplace, minPrice, maxPrice, withDelivery, location, maxPages });
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return res.json({ ok: true, cached: true, results: cached });
+  }
+
+  try {
+    let results = [];
+
+    if (marketplace === 'olx') {
+      results = await withRetries(
+        () => scrapeOLXWithPuppeteer(q, {
+          minPrice,
+          maxPrice,
+          withDelivery: String(withDelivery) === 'true' || withDelivery === '1',
+          location,
+          maxPages: Math.max(1, Math.min(5, parseInt(maxPages, 10) || 2)),
+        }),
+        { retries: 1, delayMs: 1500 }
+      );
+    } else if (marketplace === 'xkom') {
+      results = await scrapeXkom(q, { minPrice, maxPrice });
+    } else if (marketplace === 'ceneo') {
+      results = await scrapeCeneo(q, { minPrice, maxPrice });
+    } else {
+      return res.status(400).json({ ok: false, error: 'Unsupported marketplace' });
+    }
+
+    cache.set(cacheKey, results, cacheTTL);
+    return res.json({ ok: true, cached: false, results });
+  } catch (error) {
+    console.error('[API /api/search] Error:', error);
+    return res.status(500).json({ ok: false, error: error.message || 'Internal Error' });
+  }
 });
 
-// Cache stats endpoint
-app.get('/api/cache/stats', (req, res) => {
-  const stats = cache.stats();
-  res.json(stats);
-});
-
-/**
- * Apply filters to results
- */
-function applyFilters(results, filters) {
-  const { minPrice, maxPrice, location } = filters;
-
-  return results.filter(item => {
-    // Price filter
-    if (minPrice && item.price < parseInt(minPrice)) return false;
-    if (maxPrice && item.price > parseInt(maxPrice)) return false;
-    
-    // Location filter (for OLX)
-    if (location && location !== 'all' && item.location !== location) return false;
-    
-    return true;
-  });
+// Грейсфул-шатдаун: корректно закрываем браузер Puppeteer
+async function gracefulShutdown(signal) {
+  console.log(`[Server] Received ${signal}. Shutting down gracefully...`);
+  try {
+    await closePuppeteerBrowser();
+  } catch (e) {
+    console.warn('[Server] Error closing Puppeteer:', e?.message || e);
+  } finally {
+    process.exit(0);
+  }
 }
 
-// Cleanup rate limiter every 5 minutes
-setInterval(() => {
-  rateLimiter.cleanup();
-  console.log('[Cleanup] Rate limiter cleaned up');
-}, 5 * 60 * 1000);
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`
-🚀 Backend server running!
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📍 URL: http://localhost:${PORT}
-🏥 Health: http://localhost:${PORT}/health
-🔍 Search: POST http://localhost:${PORT}/api/search
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  `);
+  console.log(`Backend server listening on port ${PORT}`);
 });
 
-export default app;
+// Общий ретрай хелпер
+async function withRetries(fn, { retries = 1, delayMs = 1000 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, delayMs * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}

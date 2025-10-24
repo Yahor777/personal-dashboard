@@ -127,7 +127,7 @@ export function KanbanBoard({ tabId, onCardClick }: KanbanBoardProps) {
       </div>
 
       {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto touch-pan-x">
+      <div className="flex-1 overflow-x-auto touch-pan-x" data-scroll-x>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}

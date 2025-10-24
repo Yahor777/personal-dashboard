@@ -115,11 +115,11 @@ export function CS2GameTracker({ onClose }: CS2GameTrackerProps) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-background">
+    <div data-panel="true" className="fixed inset-0 z-50 flex bg-background">
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="border-b border-border p-4 bg-gradient-to-r from-orange-500/10 to-blue-500/10">
+        <div className="border-b border-border p-4 bg-gradient-to-r from-orange-500/10 to-blue-500/10 pt-safe">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="size-12 rounded-lg bg-gradient-to-br from-orange-500 to-blue-500 flex items-center justify-center">
@@ -233,7 +233,7 @@ export function CS2GameTracker({ onClose }: CS2GameTrackerProps) {
 
                 {/* Media Grid */}
                 <div className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
+                  <ScrollArea className="h-full pb-safe">
                     <div className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {filteredMedia.map((item) => (
@@ -289,7 +289,7 @@ export function CS2GameTracker({ onClose }: CS2GameTrackerProps) {
             </TabsContent>
 
             <TabsContent value="games" className="h-full m-0">
-              <ScrollArea className="h-full">
+               <ScrollArea className="h-full pb-safe">
                 <div className="p-4">
                   <p className="text-muted-foreground text-center py-8">История игр скоро будет добавлена...</p>
                 </div>
@@ -297,7 +297,7 @@ export function CS2GameTracker({ onClose }: CS2GameTrackerProps) {
             </TabsContent>
 
             <TabsContent value="maps" className="h-full m-0">
-              <ScrollArea className="h-full">
+               <ScrollArea className="h-full pb-safe">
                 <div className="p-4">
                   <p className="text-muted-foreground text-center py-8">Статистика по картам скоро будет добавлена...</p>
                 </div>

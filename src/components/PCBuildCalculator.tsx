@@ -129,9 +129,9 @@ export function PCBuildCalculator({ onClose }: PCBuildCalculatorProps) {
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-6xl flex-col border-l border-border bg-background shadow-2xl">
+    <div data-panel="true" className="fixed inset-y-0 right-0 z-50 flex w-full max-w-6xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex items-center justify-between border-b border-border p-4 pt-safe">
         <div className="flex items-center gap-3">
           <Calculator className="size-5 text-primary" />
           <div>
@@ -150,7 +150,7 @@ export function PCBuildCalculator({ onClose }: PCBuildCalculatorProps) {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+        <ScrollArea className="h-full pb-safe">
           <div className="p-6 space-y-6">
           {showTemplates ? (
             /* Template Builds */

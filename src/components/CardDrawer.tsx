@@ -163,7 +163,7 @@ export function CardDrawer({ card, onClose }: CardDrawerProps) {
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl">
+    <div data-panel="true" className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border p-4">
         <div className="flex items-center gap-2">

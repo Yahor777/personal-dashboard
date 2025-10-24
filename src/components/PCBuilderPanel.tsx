@@ -206,9 +206,9 @@ ${compatibilityChecks.gpuCase ? '✅' : '❌'} GPU ↔ Корпус
   const allCompatible = Object.values(compatibilityChecks).every(c => c);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div data-panel="true" className="fixed inset-0 z-50 flex flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex items-center justify-between border-b border-border p-4 pt-safe">
         <div className="flex items-center gap-3">
           <Zap className="size-6 text-primary" />
           <div>
@@ -222,7 +222,7 @@ ${compatibilityChecks.gpuCase ? '✅' : '❌'} GPU ↔ Корпус
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 pb-safe">
         <div className="p-6 space-y-6">
           {/* Готовые шаблоны */}
           <Card>

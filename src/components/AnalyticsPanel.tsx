@@ -51,9 +51,9 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
   ];
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-4xl flex-col border-l border-border bg-background shadow-2xl">
+    <div data-panel="true" className="fixed inset-y-0 right-0 z-50 flex w-full max-w-4xl flex-col border-l border-border bg-background shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex items-center justify-between border-b border-border p-4 pt-safe">
         <h2>{t('analytics')}</h2>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="size-5" />
@@ -61,7 +61,7 @@ export function AnalyticsPanel({ onClose }: AnalyticsPanelProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-6 pb-safe">
         <div className="space-y-6">
           {/* Key Metrics */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

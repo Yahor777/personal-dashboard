@@ -35,6 +35,7 @@ interface SearchResult {
   location: string;
   url: string;
   image?: string;
+  images?: string[];
   description: string;
   marketplace?: string;
 }
@@ -74,7 +75,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
-  const [analyses, setAnalyses] = useState<Record<string, string>>({});
+  const [analyses, setAnalyses] = useState<Record<string, string | { offerId: string; short: string; full: string }>>({});
   const [aiSearching, setAiSearching] = useState(false);
   
   // PC Build Mode
@@ -175,7 +176,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
     
     try {
       // Call backend API
-      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002';
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
       
       const response = await fetch(`${BACKEND_URL}/api/search`, {
         method: 'POST',
@@ -189,6 +190,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
           maxPrice: maxPrice || undefined,
           category: componentType,
           location: location !== 'all' ? location : undefined,
+          maxPages: 3,
         }),
       });
 
@@ -379,6 +381,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
 
       const analysis = await analyzeOLXListing(
         {
+          id: result.id,
           title: result.title,
           price: result.price,
           description: result.description,
@@ -403,9 +406,9 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
   const totalBuildPrice = selectedComponents.reduce((sum, c) => sum + c.price, 0);
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-4xl flex-col border-l border-border bg-background shadow-2xl">
+    <div data-panel="true" className="fixed z-50 flex w-full md:max-w-4xl flex-col bg-background shadow-2xl md:inset-y-0 md:right-0 md:left-auto inset-x-0 top-14 bottom-16 border-border md:border-l md:border-t-0 border-t">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex items-center justify-between border-b border-border p-4 pt-safe">
         <div className="flex items-center gap-3">
           <Package className="size-5 text-primary" />
           <h2>🛒 Поиск на маркетплейсах</h2>
@@ -430,7 +433,7 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
       </div>
 
       {/* Search Controls */}
-      <div className="border-b border-border bg-muted/30 p-4">
+      <div className="border-b border-border bg-muted p-4">
         <div className="grid gap-4">
           {/* Marketplace Selector */}
           <div className="flex gap-2 items-center">
@@ -450,12 +453,12 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
           </div>
 
           {/* Main Search Bar */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Что ищете? Например: RX 580 8GB"
-              className="flex-1"
+              className="flex-1 min-w-[220px]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSearch();
               }}
@@ -610,10 +613,10 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
 
       {/* Results - with proper scroll */}
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+        <ScrollArea data-scroll-area className="h-full pb-bottom-nav">
           <div className="p-4">
             {/* BEST FREE METHOD INFO */}
-            {results.length === 0 && !isLoading && (
+            {results.length === 0 && !isLoading && 
               <div className="mb-6 rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
                 <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary">
                   <Sparkles className="size-5" />
@@ -661,185 +664,213 @@ export function OLXSearchPanel({ onClose }: OLXSearchPanelProps) {
                   </div>
                 </div>
               </div>
-            )}
+              }
 
-            {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-lg border border-border bg-card p-4">
-                <Skeleton className="mb-2 h-6 w-3/4" />
-                <Skeleton className="mb-2 h-4 w-1/2" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ))}
-          </div>
-        ) : results.length > 0 ? (
-          <div className="space-y-3">
-            <p className="text-muted-foreground">
-              Найдено: {results.length} объявлений
-            </p>
-            {results.map((result) => {
-              const isSelected = selectedComponents.some(c => c.id === result.id);
-              
-              return (
-              <div
-                key={result.id}
-                className={`group rounded-lg border p-4 transition-all ${
-                  isSelected 
-                    ? 'border-primary bg-primary/5 shadow-md' 
-                    : 'border-border bg-card hover:border-primary hover:shadow-md'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      {buildMode && (
-                        <Button
-                          variant={isSelected ? 'default' : 'outline'}
-                          size="icon"
-                          className="size-6"
-                          onClick={() => toggleComponentSelection(result)}
-                        >
-                          {isSelected ? <Check className="size-4" /> : <Plus className="size-4" />}
-                        </Button>
-                      )}
-                      <h3>{result.title}</h3>
+              {/* Results content - simplified conditionals */}
+              {isLoading && (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-lg border border-border bg-card p-4">
+                      <Skeleton className="mb-2 h-6 w-3/4" />
+                      <Skeleton className="mb-2 h-4 w-1/2" />
+                      <Skeleton className="h-4 w-full" />
                     </div>
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-600">
-                        💰 {result.price} {result.currency}
-                      </Badge>
-                      <Badge variant="outline">
-                        {CONDITION_LABELS[result.condition as keyof typeof CONDITION_LABELS] || result.condition}
-                      </Badge>
-                      <Badge variant="outline">📍 {result.location}</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {result.description}
-                    </p>
-                  </div>
+                  ))}
                 </div>
+              )}
 
-                {!buildMode && (
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => handleAddToBoard(result)}
-                    className="flex-1"
-                  >
-                    <Plus className="mr-2 size-4" />
-                    Добавить на доску
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleAnalyzeWithAI(result)}
-                    disabled={analyzingId === result.id}
-                  >
-                    <Sparkles className="mr-2 size-4" />
-                    {analyzingId === result.id ? 'Анализ...' : 'AI анализ'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => window.open(result.url, '_blank')}
-                  >
-                    <ExternalLink className="size-4" />
-                  </Button>
+              {!isLoading && results.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-muted-foreground">Найдено: {results.length} объявлений</p>
+                  {results.map((result) => {
+                    const isSelected = selectedComponents.some(c => c.id === result.id);
+                    const analysis = analyses[result.id];
+                    return (
+                      <div
+                        key={result.id || result.url || result.title}
+                        className={`group rounded-lg border p-3 md:p-4 transition-all ${selectedOfferId === result.id ? 'ring-2 ring-primary' : ''}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            {Array.isArray(result.images) && result.images.length > 0 && (
+                              <div className="mb-2 -mx-4 md:mx-0">
+                                <div className="flex gap-2 overflow-x-auto" data-scroll-x>
+                                  {result.images.map((src, idx) => (
+                                    <img
+                                      key={idx}
+                                      src={src}
+                                      alt={`${result.title} ${idx + 1}`}
+                                      className="h-28 md:h-40 w-auto flex-shrink-0 rounded"
+                                      loading="lazy"
+                                      draggable={false}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="mb-1 md:mb-2 flex items-center gap-2">
+                              <h3 className="text-sm md:text-base font-semibold">{result.title}</h3>
+                              {result.condition && (
+                                <Badge variant="secondary" className="text-xs md:text-sm">
+                                  {result.condition}
+                                </Badge>
+                              )}
+                              {result.location && (
+                                <Badge variant="outline" className="text-xs md:text-sm">
+                                  {result.location}
+                                </Badge>
+                              )}
+                            </div>
+
+                            {result.price && (
+                              <div className="mb-1 md:mb-2 text-sm md:text-base font-medium text-primary">
+                                {result.price}
+                              </div>
+                            )}
+
+                            {result.description && (
+                              <p className="text-sm md:text-base text-muted-foreground whitespace-pre-wrap">
+                                {result.description}
+                              </p>
+                            )}
+
+                            <div className="mt-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => navigator.clipboard.writeText(result.description || '')}
+                              >
+                                Готовое описание: копировать
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Действия по объявлению */}
+                          {!buildMode && (
+                            <div className="mt-3 flex gap-2">
+                              <Button size="sm" onClick={() => handleAddToBoard(result)} className="flex-1">
+                                <Plus className="mr-2 size-4" />
+                                Добавить на доску
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleAnalyzeWithAI(result)}
+                                disabled={analyzingId === result.id}
+                              >
+                                <Sparkles className="mr-2 size-4" />
+                                {analyzingId === result.id ? 'Анализ...' : 'AI анализ'}
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => window.open(result.url, '_blank')}>
+                                <ExternalLink className="size-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* AI analysis display */}
+                        {analysis && (
+                          <div className="mt-3 md:mt-4 rounded-md border bg-muted/30 p-2 md:p-3">
+                            {typeof analysis === 'string' ? (
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysis}</ReactMarkdown>
+                            ) : analysis.offerId === result.id ? (
+                              <>
+                                <p className="text-sm md:text-base">{analysis.short}</p>
+                                <div className="mt-2">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysis.full}</ReactMarkdown>
+                                </div>
+                                <div className="mt-2 flex gap-2">
+                                  <Button size="sm" onClick={() => navigator.clipboard.writeText(analysis.short)}>
+                                    Копировать краткое
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(analysis.full)}>
+                                    Копировать полное
+                                  </Button>
+                                </div>
+                              </>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                )}
+              )}
 
-                {/* AI Analysis Result */}
-                {analyses[result.id] && (
-                  <div className="prose prose-sm dark:prose-invert mt-3 max-w-none rounded-lg border border-primary/20 bg-primary/5 p-4">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-semibold not-prose">
-                      <Sparkles className="size-4 text-primary" />
-                      AI Анализ экспертом
-                    </div>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {analyses[result.id]}
-                    </ReactMarkdown>
-                  </div>
-                )}
-              </div>
-            );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Package className="mb-4 size-16 text-muted-foreground opacity-50" />
-            <h3 className="mb-2">Начните поиск</h3>
-            <p className="text-muted-foreground">
-              Выберите тип компонента и нажмите "Найти"
-            </p>
-          </div>
-        )}
-          </div>
-        </ScrollArea>
-      </div>
-
-      {/* Footer */}
-      <div className="border-t border-border bg-muted/30 p-4">
-        {buildMode && selectedComponents.length > 0 ? (
-          <div className="space-y-3">
-            <div className="rounded-lg bg-primary/10 p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">Выбрано компонентов: {selectedComponents.length}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Общая стоимость: <span className="font-semibold text-green-600">{totalBuildPrice} zł</span>
-                  </p>
+              {!isLoading && results.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="mb-4 size-16 text-muted-foreground opacity-50" />
+                  <h3 className="mb-2">Начните поиск</h3>
+                  <p className="text-muted-foreground">Выберите тип компонента и нажмите «Найти»</p>
                 </div>
-                <Button onClick={handleCreateBuild} size="lg" className="gap-2">
-                  <Wrench className="size-5" />
-                  Создать сборку
-                </Button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {selectedComponents.map(c => (
-                <Badge key={c.id} variant="secondary" className="gap-1">
-                  {c.title.slice(0, 20)}... - {c.price} zł
-                  <X 
-                    className="size-3 cursor-pointer hover:text-destructive" 
-                    onClick={() => toggleComponentSelection(c)}
-                  />
-                </Badge>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3 text-sm">
-            {/* Real-time search info */}
-            <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-primary">
-              <p className="flex items-center gap-2 font-semibold">
-                <TrendingUp className="size-4" />
-                ✅ Реальный поиск активен
-              </p>
-              <p className="mt-1 text-xs opacity-90">
-                Данные загружаются с маркетплейсов в реальном времени. 
-                Backend сервер должен быть запущен (localhost:3002)
-              </p>
-            </div>
-
-            <div className="text-muted-foreground">
-              <p>
-                <strong>💡 Совет:</strong> {buildMode 
-                  ? 'Выберите компоненты из результатов поиска для создания сборки ПК' 
-                  : 'После добавления карточки вы сможете:'}
-              </p>
-              {!buildMode && (
-                <ul className="list-inside list-disc space-y-1 pl-4">
-                  <li>Загрузить фото компонента (вкладка "Фото")</li>
-                  <li>Добавить заметки о состоянии и тестах</li>
-                  <li>Отследить цену и сравнить с рынком</li>
-                  <li>Использовать AI для анализа объявления</li>
-                </ul>
               )}
             </div>
-          </div>
-        )}
+          </ScrollArea>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-border bg-muted p-4 pb-bottom-nav">
+          {buildMode && selectedComponents.length > 0 ? (
+            <div className="space-y-3">
+              <div className="rounded-lg bg-primary/10 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">Выбрано компонентов: {selectedComponents.length}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Общая стоимость: <span className="font-semibold text-green-600">{totalBuildPrice} zł</span>
+                    </p>
+                  </div>
+                  <Button onClick={handleCreateBuild} size="lg" className="gap-2">
+                    <Wrench className="size-5" />
+                    Создать сборку
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedComponents.map(c => (
+                  <Badge key={c.id} variant="secondary" className="gap-1">
+                    {c.title.slice(0, 20)}... - {c.price} zł
+                    <X 
+                      className="size-3 cursor-pointer hover:text-destructive" 
+                      onClick={() => toggleComponentSelection(c)}
+                    />
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 text-sm">
+              {/* Real-time search info */}
+              <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-primary">
+                <p className="flex items-center gap-2 font-semibold">
+                  <TrendingUp className="size-4" />
+                  ✅ Реальный поиск активен
+                </p>
+                <p className="mt-1 text-xs opacity-90">
+                  Данные загружаются с маркетплейсов в реальном времени. 
+                  Backend сервер должен быть запущен (localhost:3002)
+                </p>
+              </div>
+
+              <div className="text-muted-foreground">
+                <p>
+                  <strong>💡 Совет:</strong> {buildMode 
+                    ? 'Выберите компоненты из результатов поиска для создания сборки ПК' 
+                    : 'После добавления карточки вы сможете:'}
+                </p>
+                {!buildMode && (
+                  <ul className="list-inside list-disc space-y-1 pl-4">
+                    <li>Загрузить фото компонента (вкладка "Фото")</li>
+                    <li>Добавить заметки о состоянии и тестах</li>
+                    <li>Отследить цену и сравнить с рынком</li>
+                    <li>Использовать AI для анализа объявления</li>
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
 }

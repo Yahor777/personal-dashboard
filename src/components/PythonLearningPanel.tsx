@@ -94,9 +94,9 @@ export function PythonLearningPanel({ onClose }: PythonLearningPanelProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div data-panel="true" className="fixed inset-0 z-50 flex flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex items-center justify-between border-b border-border p-4 pt-safe">
         <div className="flex items-center gap-3">
           <div className="text-3xl">🐍</div>
           <div>
@@ -112,7 +112,7 @@ export function PythonLearningPanel({ onClose }: PythonLearningPanelProps) {
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 pb-safe">
         <div className="p-6 space-y-6">
           {/* Общий прогресс */}
           <Card className="border-green-500">
@@ -261,7 +261,7 @@ export function PythonLearningPanel({ onClose }: PythonLearningPanelProps) {
                                             <summary className="cursor-pointer text-sm text-primary hover:underline">
                                               Показать решение
                                             </summary>
-                                            <pre className="mt-2 p-2 rounded bg-muted text-xs overflow-x-auto">
+                                            <pre className="mt-2 p-2 rounded bg-muted text-xs overflow-x-auto" data-scroll-x>
                                               <code>{task.solution}</code>
                                             </pre>
                                           </details>

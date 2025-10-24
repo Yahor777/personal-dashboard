@@ -146,31 +146,31 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
         <SidebarFooter className="border-t border-sidebar-border p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenAI} className="text-primary">
+              <SidebarMenuButton onClick={onOpenAI}>
                 <Sparkles className="size-4" />
                 <span>{t('aiAssistant')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenOLXSearch} className="text-green-600">
+              <SidebarMenuButton onClick={onOpenOLXSearch}>
                 <Search className="size-4" />
                 <span>🛒 OLX Поиск</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenPCBuilder} className="text-blue-600">
+              <SidebarMenuButton onClick={onOpenPCBuilder}>
                 <Cpu className="size-4" />
                 <span>🖥️ PC Builder</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenPythonLearning} className="text-green-600">
+              <SidebarMenuButton onClick={onOpenPythonLearning}>
                 <Code2 className="size-4" />
                 <span>🐍 Python Roadmap</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenCS2Tracker} className="text-orange-600">
+              <SidebarMenuButton onClick={onOpenCS2Tracker}>
                 <Cpu className="size-4" />
                 <span>🎮 CS2 Tracker</span>
               </SidebarMenuButton>

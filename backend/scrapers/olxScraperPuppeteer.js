@@ -13,6 +13,24 @@ puppeteer.use(StealthPlugin());
 let browser = null;
 let browserLaunchPromise = null;
 
+// Минимальный пул user-agent строк (ротация для стабильности)
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+];
+
+function pickUA() {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+function getProxyArg() {
+  const proxy = process.env.PROXY_SERVER || process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+  return proxy ? [`--proxy-server=${proxy}`] : [];
+}
+
+const DEBUG = (process.env.SCRAPER_DEBUG || '').toLowerCase() === 'true';
+
 /**
  * Получить или запустить браузер
  */
@@ -40,6 +58,7 @@ async function getBrowser() {
       '--window-size=1920,1080',
       '--disable-blink-features=AutomationControlled',
       '--disable-features=IsolateOrigins,site-per-process',
+      ...getProxyArg(),
     ],
     defaultViewport: {
       width: 1920,
@@ -71,7 +90,7 @@ async function getBrowser() {
  * 🔍 Главная функция парсинга
  */
 export async function scrapeOLXWithPuppeteer(query, options = {}) {
-  const { minPrice, maxPrice, category, location, maxPages = 3 } = options;
+  const { maxPages = 3 } = options;
   
   console.log(`[Puppeteer OLX] Starting scrape for: "${query}"`);
   console.log(`[Puppeteer OLX] Will parse up to ${maxPages} pages`);
@@ -81,10 +100,13 @@ export async function scrapeOLXWithPuppeteer(query, options = {}) {
   try {
     const browserInstance = await getBrowser();
     
-    // Парсим несколько страниц
+    // Парсим несколько страниц с ретраями
     for (let page = 1; page <= maxPages; page++) {
       try {
-        const pageResults = await scrapePage(browserInstance, query, page, options);
+        const pageResults = await withRetries(
+          () => scrapePage(browserInstance, query, page, options),
+          { retries: 2, delayMs: 2000 }
+        );
         allResults.push(...pageResults);
         
         console.log(`[Puppeteer OLX] Page ${page}/${maxPages}: found ${pageResults.length} listings (total: ${allResults.length})`);
@@ -97,7 +119,7 @@ export async function scrapeOLXWithPuppeteer(query, options = {}) {
         
         // Задержка между страницами
         if (page < maxPages) {
-          await sleep(2000);
+          await sleep(1500);
         }
         
       } catch (error) {
@@ -124,7 +146,7 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
   
   try {
     // Устанавливаем реалистичный User-Agent
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    await page.setUserAgent(pickUA());
     
     // Устанавливаем дополнительные заголовки
     await page.setExtraHTTPHeaders({
@@ -148,38 +170,30 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
     const url = buildOLXUrl(query, pageNumber, options);
     console.log(`[Puppeteer OLX] Navigating to: ${url}`);
     
-    // Переходим на страницу
-    await page.goto(url, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000,
-    });
-    
-    // Ждём загрузки контента
-    console.log('[Puppeteer OLX] Waiting for content...');
-    await new Promise(resolve => setTimeout(resolve, 5000)); // 5 секунд на загрузку
-    
-    // Прокручиваем страницу чтобы загрузить lazy-loading изображения
-    console.log('[Puppeteer OLX] Scrolling to load images...');
-    await page.evaluate(() => {
-      return new Promise((resolve) => {
-        let totalHeight = 0;
-        const distance = 100;
-        const timer = setInterval(() => {
-          const scrollHeight = document.body.scrollHeight;
-          window.scrollBy(0, distance);
-          totalHeight += distance;
-
-          if (totalHeight >= scrollHeight) {
-            clearInterval(timer);
-            window.scrollTo(0, 0); // Возвращаемся наверх
-            resolve();
-          }
-        }, 100);
+    // Переходим на страницу (с ретраем)
+    await withRetries(async () => {
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000,
       });
-    });
+    }, { retries: 2, delayMs: 1500 });
     
-    // Ждём ещё немного после прокрутки
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 секунды
+    // Проверка антибот/капча
+    if (await detectAntiBot(page)) {
+      console.warn('[Puppeteer OLX] Anti-bot detected; waiting and retrying once...');
+      await sleep(3500);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+    }
+
+    // Ждём появления контента (любой из селекторов)
+    try {
+      await page.waitForSelector('[data-cy="l-card"], a[href*="/oferta/"], [data-testid*="listing"]', { timeout: 15000 });
+    } catch (_) {
+      console.warn('[Puppeteer OLX] No card selector appeared; will continue with fallback extract');
+    }
+
+    // Прокручиваем страницу чтобы загрузить lazy-loading изображения
+    await ensureScrollFullyLoaded(page);
     
     // Логируем что видим на странице
     const pageInfo = await page.evaluate(() => {
@@ -192,10 +206,12 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
     });
     console.log('[Puppeteer OLX] Page info:', JSON.stringify(pageInfo));
     
-    // Делаем скриншот для отладки
-    const screenshotPath = `./debug-olx-page${pageNumber}.png`;
-    await page.screenshot({ path: screenshotPath, fullPage: false });
-    console.log(`[Puppeteer OLX] Screenshot saved: ${screenshotPath}`);
+    // Скриншоты/HTML только в DEBUG режиме
+    if (DEBUG) {
+      const screenshotPath = `./debug-olx-page${pageNumber}.png`;
+      await page.screenshot({ path: screenshotPath, fullPage: false });
+      console.log(`[Puppeteer OLX] Screenshot saved: ${screenshotPath}`);
+    }
     
     // Извлекаем данные - УНИВЕРСАЛЬНЫЙ МЕТОД
     const listings = await page.evaluate(() => {
@@ -220,8 +236,6 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
       // Убираем дубликаты
       links = [...new Set(links)];
       
-      console.log(`[Page] Found ${links.length} listing links`);
-      
       // Группируем по уникальным URL
       const uniqueUrls = new Set();
       let skippedNoID = 0;
@@ -233,8 +247,6 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
           let href = link.getAttribute('href');
           if (!href || uniqueUrls.has(href)) return;
           
-          // ВАЖНО: Берём только ссылки на объявления
-          // Проверяем что это /d/oferty/ или /oferta/ И содержит уникальный идентификатор
           const isValidListing = (href.includes('/d/oferty/') || href.includes('/oferta/')) && 
                                  (href.includes('ID') || href.match(/-[A-Za-z0-9]+\.html$/));
           
@@ -243,44 +255,35 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
             return; // Пропускаем не объявления
           }
           
-          // Пропускаем wyróżnione без конкретного ID (общие страницы)
           if (href.includes('/wyroznienie/') || href.endsWith('/d/oferty/') || href.endsWith('/oferty/')) {
             skippedNoID++;
             return;
           }
           
-          // Находим родительский контейнер объявления
           const card = link.closest('[data-cy="l-card"]') || 
                        link.closest('div[data-testid*="listing"]') ||
                        link.parentElement?.parentElement;
           
           if (!card) return;
           
-          // Заголовок - берём из самой ссылки или ищем h6
           let title = link.querySelector('h6')?.textContent?.trim() ||
                      link.querySelector('h4')?.textContent?.trim() ||
                      link.textContent?.trim();
-          
-          // Очищаем заголовок от мусора
           title = title?.split('\n')[0]?.trim();
-          
           if (!title || title.length < 3) return;
           
-          // Цена - ищем в родительском контейнере
           let price = 0;
           const priceEl = card.querySelector('[data-testid="ad-price"]') ||
                          card.querySelector('p:has(span)') ||
                          Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('zł'));
-          
           if (priceEl) {
             const priceText = priceEl.textContent;
-            const priceMatch = priceText.match(/(\d[\d\s,.]*)/);
+            const priceMatch = priceText.match(/(\d[\d\s,\.]*)/);
             if (priceMatch) {
-              price = parseInt(priceMatch[1].replace(/[\s,.]/g, ''), 10);
+              price = parseInt(priceMatch[1].replace(/[\s\.,]/g, ''), 10);
             }
           }
           
-          // Локация
           let location = 'Polska';
           const locationEl = card.querySelector('[data-testid="location-date"]') ||
                             Array.from(card.querySelectorAll('p')).find(p => 
@@ -288,7 +291,6 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
                               p.textContent.includes('wczoraj') ||
                               /\d{1,2}\s\w+/.test(p.textContent)
                             );
-          
           if (locationEl) {
             const locText = locationEl.textContent;
             const parts = locText.split('-');
@@ -297,13 +299,9 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
             }
           }
           
-          // Изображение (АГРЕССИВНЫЙ ПОИСК ФОТО)
           let image = '';
-          
-          // МЕТОД 1: Ищем img внутри карточки
           const imgEl = card.querySelector('img');
           if (imgEl) {
-            // Пробуем ВСЕ возможные атрибуты
             image = imgEl.src || 
                     imgEl.dataset.src || 
                     imgEl.dataset.lazy || 
@@ -314,8 +312,6 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
                     imgEl.getAttribute('data-original') ||
                     imgEl.getAttribute('data-srcset') ||
                     '';
-            
-            // Если src это data:image (placeholder) - ищем реальный URL
             if (image.startsWith('data:image') || image.length < 10) {
               image = imgEl.dataset.src || 
                       imgEl.dataset.lazy || 
@@ -323,23 +319,15 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
                       imgEl.getAttribute('data-src') ||
                       '';
             }
-            
-            // Убираем ограничения размера - берём оригинал
             if (image && image.includes('_') && !image.includes('unsplash')) {
-              // Убираем размеры вида _300x200
               image = image.replace(/_\d+x\d+/g, '');
-              // Убираем двойное подчеркивание
               image = image.replace(/__/g, '_');
-              // Убираем подчеркивание перед точкой
               image = image.replace(/_\./g, '.');
             }
-            
-            // МЕТОД 2: srcset с максимальным разрешением
             const srcset = imgEl.getAttribute('srcset') || imgEl.dataset.srcset;
             if (srcset && srcset.length > 10) {
               const sources = srcset.split(',').map(s => s.trim());
               if (sources.length > 0) {
-                // Берём последний (самый большой)
                 const largestSrc = sources[sources.length - 1].split(' ')[0];
                 if (largestSrc && largestSrc.startsWith('http')) {
                   image = largestSrc;
@@ -348,50 +336,42 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
             }
           }
           
-          // МЕТОД 3: Ищем background-image в стилях
           if (!image || image.length < 10) {
             const imgContainer = card.querySelector('[style*="background-image"]');
             if (imgContainer) {
               const style = imgContainer.getAttribute('style');
-              const urlMatch = style.match(/url\(['"]?([^'"]+)['"]?\)/);
+              const urlMatch = style.match(/url\(['"]?([^'"\)]+)['"]?\)/);
               if (urlMatch && urlMatch[1]) {
                 image = urlMatch[1];
               }
             }
           }
           
-          // МЕТОД 4: Ищем picture > source
           if (!image || image.length < 10) {
             const pictureEl = card.querySelector('picture source');
             if (pictureEl) {
               image = pictureEl.getAttribute('srcset') || pictureEl.dataset.src || '';
               if (image.includes(',')) {
-                // Берём последний (самый большой)
                 const sources = image.split(',');
                 image = sources[sources.length - 1].trim().split(' ')[0];
               }
             }
           }
           
-          // Если нет фото - используем placeholder (НЕ пропускаем!)
           if (!image || image.length < 10 || image.includes('default') || image.includes('placeholder')) {
-            // Placeholder высокого качества
             image = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80';
             skippedNoPhoto++;
           }
           
-          // Полный URL - исправляем формат
           let fullUrl = href;
           if (!href.startsWith('http')) {
             fullUrl = `https://www.olx.pl${href}`;
           }
-          // Убеждаемся что это прямая ссылка на объявление
           if (!fullUrl.includes('/d/oferty/') && !fullUrl.includes('/oferta/')) {
             skippedInvalidURL++;
             return; // Skip invalid URLs
           }
           
-          // ID из URL
           const idMatch = href.match(/ID([a-zA-Z0-9]+)/);
           const id = idMatch ? idMatch[1] : `olx-${Date.now()}-${results.length}`;
           
@@ -423,9 +403,8 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
     console.log(`[Puppeteer OLX] Photo stats: ${listings.skippedNoPhoto} used placeholder, ${listings.results.length - listings.skippedNoPhoto} had real photos`);
     console.log(`[Puppeteer OLX] Skipped: ${listings.skippedNoID} (no ID), ${listings.skippedInvalidURL} (invalid URL)`);
     
-    const listingsArray = listings.results;
+    let listingsArray = listings.results;
     
-    // Логируем примеры URL
     if (listingsArray.length > 0) {
       console.log(`[Puppeteer OLX] Sample URLs:`);
       listingsArray.slice(0, 3).forEach((item, idx) => {
@@ -433,14 +412,122 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
       });
     }
     
-    // Если ничего не нашли - сохраняем HTML для анализа
-    if (listingsArray.length === 0) {
+    if (listingsArray.length === 0 && DEBUG) {
       const html = await page.content();
       const htmlPath = `./debug-olx-page${pageNumber}.html`;
       const fs = await import('fs');
       fs.writeFileSync(htmlPath, html);
       console.log(`[Puppeteer OLX] ⚠️ No listings found! HTML saved to: ${htmlPath}`);
       console.log(`[Puppeteer OLX] Page title: ${await page.title()}`);
+    }
+    
+    // 🔁 Fallback: если включена доставка и результатов нет — пробуем без фильтра доставки
+    if (listingsArray.length === 0 && options?.withDelivery) {
+      console.warn('[Puppeteer OLX] No results with delivery; retrying without delivery filter...');
+      const altUrl = buildOLXUrl(query, pageNumber, { ...options, withDelivery: false });
+      console.log(`[Puppeteer OLX] Navigating to fallback URL: ${altUrl}`);
+      await withRetries(async () => {
+        await page.goto(altUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      }, { retries: 1, delayMs: 1000 });
+     // Повторная проверка антибота на fallback-странице
+     if (await detectAntiBot(page)) {
+       console.warn('[Puppeteer OLX] Anti-bot detected on fallback; waiting and reloading...');
+       await sleep(3500);
+       await page.reload({ waitUntil: 'domcontentloaded' });
+     }
+      try {
+        await page.waitForSelector('[data-cy="l-card"], a[href*="/oferta/"], [data-testid*="listing"]', { timeout: 12000 });
+      } catch (_) {}
+      await ensureScrollFullyLoaded(page);
+      const altListings = await page.evaluate(() => {
+        const results = [];
+        let links = Array.from(document.querySelectorAll('a[href*="/d/oferty/"], a[href*="/oferta/"]'));
+        if (links.length === 0) {
+          links = Array.from(document.querySelectorAll('[data-cy="l-card"] a, [data-testid*="listing"] a'));
+        }
+        if (links.length === 0) {
+          links = Array.from(document.querySelectorAll('a[href*="/d/"]'));
+        }
+        links = [...new Set(links)];
+        const uniqueUrls = new Set();
+        links.forEach((link) => {
+          try {
+            let href = link.getAttribute('href');
+            if (!href || uniqueUrls.has(href)) return;
+            const isValidListing = (href.includes('/d/oferty/') || href.includes('/oferta/')) && 
+                                   (href.includes('ID') || href.match(/-[A-Za-z0-9]+\.html$/));
+            if (!isValidListing) return;
+            const card = link.closest('[data-cy="l-card"]') || link.closest('div[data-testid*="listing"]') || link.parentElement?.parentElement;
+            if (!card) return;
+            let title = link.querySelector('h6')?.textContent?.trim() || link.querySelector('h4')?.textContent?.trim() || link.textContent?.trim();
+            title = title?.split('\n')[0]?.trim();
+            if (!title || title.length < 3) return;
+            let price = 0;
+            const priceEl = card.querySelector('[data-testid="ad-price"]') || card.querySelector('p:has(span)') || Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('zł'));
+            if (priceEl) {
+              const priceText = priceEl.textContent;
+              const priceMatch = priceText.match(/(\d[\d\s,\.]*)/);
+              if (priceMatch) {
+                price = parseInt(priceMatch[1].replace(/[\s\.,]/g, ''), 10);
+              }
+            }
+            let location = 'Polska';
+            const locationEl = card.querySelector('[data-testid="location-date"]') || Array.from(card.querySelectorAll('p')).find(p => p.textContent.includes('dzisiaj') || p.textContent.includes('wczoraj') || /\d{1,2}\s\w+/.test(p.textContent));
+            if (locationEl) {
+              const locText = locationEl.textContent;
+              const parts = locText.split('-');
+              if (parts[0]) location = parts[0].trim();
+            }
+            let image = '';
+            const imgEl = card.querySelector('img');
+            if (imgEl) {
+              image = imgEl.src || imgEl.dataset.src || imgEl.dataset.lazy || imgEl.dataset.original || imgEl.dataset.lazyload || imgEl.getAttribute('data-src') || imgEl.getAttribute('data-lazy') || imgEl.getAttribute('data-original') || imgEl.getAttribute('data-srcset') || '';
+              if (image.startsWith('data:image') || image.length < 10) {
+                image = imgEl.dataset.src || imgEl.dataset.lazy || imgEl.dataset.original || imgEl.getAttribute('data-src') || '';
+              }
+              const srcset = imgEl.getAttribute('srcset') || imgEl.dataset.srcset;
+              if (srcset && srcset.length > 10) {
+                const sources = srcset.split(',').map(s => s.trim());
+                if (sources.length > 0) {
+                  const largestSrc = sources[sources.length - 1].split(' ')[0];
+                  if (largestSrc && largestSrc.startsWith('http')) image = largestSrc;
+                }
+              }
+            }
+            if (!image || image.length < 10) {
+              const imgContainer = card.querySelector('[style*="background-image"]');
+              if (imgContainer) {
+                const style = imgContainer.getAttribute('style');
+                const urlMatch = style.match(/url\(['"]?([^'"\)]+)['"]?\)/);
+                if (urlMatch && urlMatch[1]) image = urlMatch[1];
+              }
+            }
+            if (!image || image.length < 10) {
+              const pictureEl = card.querySelector('picture source');
+              if (pictureEl) {
+                image = pictureEl.getAttribute('srcset') || pictureEl.dataset.src || '';
+                if (image.includes(',')) {
+                  const sources = image.split(',');
+                  image = sources[sources.length - 1].trim().split(' ')[0];
+                }
+              }
+            }
+            if (!image || image.length < 10 || image.includes('default') || image.includes('placeholder')) {
+              image = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80';
+            }
+            let fullUrl = href;
+            if (!href.startsWith('http')) fullUrl = `https://www.olx.pl${href}`;
+            if (!fullUrl.includes('/d/oferty/') && !fullUrl.includes('/oferta/')) return;
+            const idMatch = href.match(/ID([a-zA-Z0-9]+)/);
+            const id = idMatch ? idMatch[1] : `olx-${Date.now()}-${results.length}`;
+            uniqueUrls.add(href);
+            results.push({ id, title, price, currency: 'zł', condition: 'used', location, url: fullUrl, image: image.startsWith('http') ? image : (image ? `https:${image}` : ''), description: title, marketplace: 'olx', publishedAt: new Date().toISOString(), scrapedAt: new Date().toISOString() });
+          } catch (_) {}
+        });
+        return { results };
+      });
+      console.log(`[Puppeteer OLX] Fallback extracted ${altListings.results.length} listings`);
+      listingsArray = altListings.results;
     }
     
     return listingsArray;
@@ -456,48 +543,32 @@ async function scrapePage(browserInstance, query, pageNumber, options) {
 function buildOLXUrl(query, page, options) {
   const { minPrice, maxPrice, withDelivery, location } = options;
   
-  // 🌍 Строим базовый URL с учетом города
+  // 🌍 Базовый URL
   let url = 'https://www.olx.pl/d/oferty';
   
-  // Добавляем город если указан
-  if (location && location !== 'all') {
-    const citySlug = location.toLowerCase()
-      .replace(/ł/g, 'l')
-      .replace(/ą/g, 'a')
-      .replace(/ć/g, 'c')
-      .replace(/ę/g, 'e')
-      .replace(/ń/g, 'n')
-      .replace(/ó/g, 'o')
-      .replace(/ś/g, 's')
-      .replace(/ź/g, 'z')
-      .replace(/ż/g, 'z');
-    url += `/${citySlug}`;
-  }
-  
-  // Добавляем поисковый запрос
-  url += `/q-${encodeURIComponent(query || 'elektronika')}`;
+  // Добавляем поисковый запрос (включаем локацию как ключевое слово для повышенной релевантности)
+  const q = (location && location !== 'all') ? `${query || 'elektronika'} ${location}` : (query || 'elektronika');
+  url += `/q-${encodeURIComponent(q)}`;
   
   const params = new URLSearchParams();
   
   if (page > 1) {
     params.append('page', page);
   }
-  
   if (minPrice) {
     params.append('search[filter_float_price:from]', minPrice);
   }
-  
   if (maxPrice) {
     params.append('search[filter_float_price:to]', maxPrice);
   }
   
-  // 🚚 Фильтр доставки OLX (несколько вариантов параметров)
+  // 🚚 Доставка: используем самый мягкий флаг доступности доставки
   if (withDelivery) {
-    // Пробуем разные параметры которые использует OLX
-    params.append('search[filter_enum_delivery_methods][0]', 'courier');
     params.append('search[delivery][available]', 'true');
-    params.append('search[dist]', '0');
   }
+
+  // Поиск по описанию тоже включаем для лучшей вибрации по ключевым словам
+  params.append('search[description]', '1');
   
   const paramString = params.toString();
   if (paramString) {
@@ -505,9 +576,64 @@ function buildOLXUrl(query, page, options) {
   }
   
   console.log(`[OLX URL] Built URL: ${url}`);
-  console.log(`[OLX URL] withDelivery: ${withDelivery}`);
-  
   return url;
+}
+
+/**
+ * Ждём полной загрузки ленивых изображений и контента
+ */
+async function ensureScrollFullyLoaded(page) {
+  // Несколько итераций прокрутки до стабилизации высоты страницы
+  let lastHeight = await page.evaluate('document.body.scrollHeight');
+  let stableIterations = 0;
+  while (stableIterations < 3) {
+    await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+    await sleep(700);
+    const newHeight = await page.evaluate('document.body.scrollHeight');
+    if (newHeight === lastHeight) {
+      stableIterations += 1;
+    } else {
+      stableIterations = 0;
+      lastHeight = newHeight;
+    }
+  }
+  // Возвращаемся наверх
+  await page.evaluate('window.scrollTo(0, 0)');
+}
+
+/**
+ * Антибот-детекция (простые эвристики)
+ */
+async function detectAntiBot(page) {
+  const html = await page.content();
+  if (/captcha|are you human|cf-challenge|access denied/i.test(html)) {
+    return true;
+  }
+  // OLX иногда показывает pageguard / ошибки на польском
+  const title = await page.title();
+  if (/attention required|verify|ups, mamy problem|ups mamy problem|przepraszamy|zbyt wiele zapytań|403|niedostępna/i.test(title) ||
+      /ups, mamy problem|ups mamy problem|przepraszamy|zbyt wiele zapytań|używasz automatycznych/i.test(html)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Универсальный ретрай с задержкой
+ */
+async function withRetries(fn, { retries = 2, delayMs = 1000 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await sleep(delayMs * Math.pow(2, attempt));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 /**
