@@ -58,15 +58,15 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
 
   return (
     <>
-      <Sidebar>
-        <SidebarHeader className="border-b border-sidebar-border p-4">
+      <Sidebar className="glass">
+        <SidebarHeader className="glass border-b border-sidebar-border p-4">
           <div className="flex items-center gap-2">
             <Home className="size-5" />
             <h2>{workspace.name}</h2>
           </div>
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent className="glass flex-1 overflow-y-auto">
           <SidebarGroup>
             <SidebarGroupLabel className="flex items-center justify-between px-4">
               <span>Вкладки</span>
@@ -143,7 +143,7 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border p-2">
+        <SidebarFooter className="glass border-t border-sidebar-border p-4">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={onOpenAI}>

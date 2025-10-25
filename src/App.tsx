@@ -377,7 +377,12 @@ export default function App() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden bg-background">
+      <div className="relative flex h-screen w-full overflow-hidden gradient-bg">
+        {/* Neon background overlays */}
+        <div className="pointer-events-none fixed inset-0 -z-10 opacity-30">
+          <div className="absolute -top-32 left-0 size-[60vw] rounded-full bg-primary/20 blur-3xl"></div>
+          <div className="absolute bottom-0 right-0 size-[40vw] rounded-full bg-accent/20 blur-2xl"></div>
+        </div>
         {/* Mobile Navigation */}
         <MobileNav
           currentTab={showOLXSearch ? 'olx' : showAI ? 'ai' : 'dashboard'}

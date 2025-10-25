@@ -41,7 +41,7 @@ function ThemeToggle() {
 
 export default function AppHeader() {
   return (
-    <div className={cn("sticky top-0 z-30 w-full toolbar elevate-sm")}>      
+    <div className={cn("sticky top-0 z-30 w-full toolbar glass elevate-sm")}>      
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-3 md:px-6">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="md:flex hidden" />
