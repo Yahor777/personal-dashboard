@@ -133,7 +133,7 @@ export const useStore = create<Store>()(
 
       resetWorkspace: () =>
         set({
-          workspace: defaultWorkspace,
+          workspace: { ...defaultWorkspace, name: 'Karo Dashboard' },
           currentTabId: defaultWorkspace.tabs[0]?.id || null,
           searchQuery: '',
           filterTags: [],

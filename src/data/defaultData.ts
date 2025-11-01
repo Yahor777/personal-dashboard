@@ -2,7 +2,7 @@ import type { Workspace } from '../types';
 
 export const defaultWorkspace: Workspace = {
   id: 'default-workspace',
-  name: 'MySpaceHub',
+  name: 'Karo Dashboard',
   tabs: [
     {
       id: 'tab-demo-1',
@@ -163,13 +163,13 @@ export const defaultWorkspace: Workspace = {
     },
   ],
   settings: {
-    theme: 'light',
+    theme: 'apple',
     language: 'ru',
-    accentColor: '#4F46E5',
-    fontFamily: 'Inter',
+    accentColor: '#007aff',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
     highContrast: false,
     notifications: true,
-    userName: 'Егор',
+    userName: 'Пользователь',
     aiEnabled: false,
     aiProvider: 'ollama',
     onboardingCompleted: false,

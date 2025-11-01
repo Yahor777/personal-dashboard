@@ -10,6 +10,7 @@ import { Input } from './ui/input';
 import { useTranslation } from '../data/translations';
 import { SidebarTrigger } from './ui/sidebar';
 import type { Card } from '../types';
+import { motion } from 'framer-motion';
 
 interface KanbanBoardProps {
   tabId: string;
@@ -98,33 +99,46 @@ export function KanbanBoard({ tabId, onCardClick }: KanbanBoardProps) {
   return (
     <div className="flex h-full flex-col" data-kanban-board>
       {/* Search & Filter Bar */}
-      <div className="border-b border-border bg-background p-2 md:p-4">
-        <div className="flex items-center gap-2">
-          {/* Mobile menu button */}
-          <SidebarTrigger className="md:hidden shrink-0">
-            <Button variant="outline" size="icon" className="h-10 w-10">
-              <Menu className="size-5" />
-            </Button>
-          </SidebarTrigger>
-          
-          <div className="flex flex-1 items-center gap-2 flex-wrap">
+      <motion.div
+        className="px-3 md:px-5 pt-3"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
+        <div className="glass rounded-2xl border border-border/40 p-3 md:p-4 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+            {/* Mobile menu button */}
+            <SidebarTrigger className="md:hidden shrink-0">
+              <Button variant="outline" size="icon" className="h-11 w-11 rounded-full">
+                <Menu className="size-5" />
+              </Button>
+            </SidebarTrigger>
+
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={t('search') + '...'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-11"
+                className="h-12 rounded-full border border-border/40 bg-background/80 pl-10 pr-6 shadow-inner focus:border-primary focus:ring-2 focus:ring-primary/40"
               />
             </div>
-            <Button onClick={handleAddColumn} variant="outline" size="default" className="h-11 whitespace-nowrap">
-              <Plus className="mr-2 size-4" />
-              <span className="hidden sm:inline">{t('newColumn')}</span>
-              <span className="sm:hidden">Колонка</span>
-            </Button>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleAddColumn}
+                variant="default"
+                size="default"
+                className="h-12 rounded-full bg-primary/90 px-5 text-sm font-semibold shadow-sm hover:bg-primary"
+              >
+                <Plus className="mr-2 size-4" />
+                <span className="hidden sm:inline">{t('newColumn')}</span>
+                <span className="sm:hidden">Колонка</span>
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto touch-pan-x" data-scroll-x>

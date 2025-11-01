@@ -23,7 +23,6 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
   const handleThemeChange = (theme: Theme) => {
     updateSettings({ theme });
-    document.documentElement.classList.toggle('dark', theme === 'dark');
   };
 
   const handleReset = () => {
@@ -75,8 +74,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">{t('themeLight')}</SelectItem>
-                    <SelectItem value="dark">{t('themeDark')}</SelectItem>
+                    <SelectItem value="apple">Apple Light 🍎</SelectItem>
+                    <SelectItem value="dark">Apple Dark 🌙</SelectItem>
+                    <SelectItem value="neon">Neon 🎮</SelectItem>
+                    <SelectItem value="minimal">Minimal ⚪</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
