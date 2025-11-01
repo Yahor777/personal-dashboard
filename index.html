@@ -3,13 +3,16 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Personal Dashboard App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Karo Dashboard</title>
     <script>
       (function() {
         try {
           var saved = localStorage.getItem('theme');
           var root = document.documentElement;
+          root.classList.add('apple');
           if (!saved) {
             root.classList.add('dark');
             localStorage.setItem('theme', 'dark');
@@ -17,9 +20,10 @@
             if (saved === 'dark') root.classList.add('dark');
             if (saved === 'neon') root.classList.add('dark', 'neon');
             if (saved === 'minimal') root.classList.add('minimal');
+            if (saved === 'light') root.classList.remove('dark', 'neon', 'minimal');
           }
         } catch (e) {
-          document.documentElement.classList.add('dark');
+          document.documentElement.classList.add('apple', 'dark');
         }
       })();
     </script>

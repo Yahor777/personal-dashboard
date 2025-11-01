@@ -1,9 +1,9 @@
-// Core Types for MySpaceHub
+// Core Types for Karo Dashboard
 
 export type CardType = 'task' | 'flashcard' | 'recipe' | 'note' | 'pc-component' | 'pc-build';
 export type Priority = 'low' | 'medium' | 'high';
 export type Language = 'ru' | 'pl' | 'en';
-export type Theme = 'light' | 'dark' | 'neon' | 'minimal';
+export type Theme = 'light' | 'dark' | 'neon' | 'minimal' | 'apple';
 export type ComponentCondition = 'new' | 'like-new' | 'good' | 'fair' | 'for-parts';
 export type AIProvider = 'none' | 'openrouter' | 'openai' | 'ollama' | 'perplexity';
 

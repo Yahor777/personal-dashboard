@@ -235,14 +235,16 @@ export default function App() {
   // Set initial theme
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove('dark', 'neon', 'minimal');
+    root.classList.remove('dark', 'neon', 'minimal', 'apple');
     
     if (workspace.settings.theme === 'dark') {
-      root.classList.add('dark');
+      root.classList.add('dark', 'apple');
     } else if (workspace.settings.theme === 'neon') {
       root.classList.add('dark', 'neon');
     } else if (workspace.settings.theme === 'minimal') {
       root.classList.add('minimal');
+    } else {
+      root.classList.add('apple');
     }
   }, [workspace.settings.theme]);
 
@@ -377,11 +379,12 @@ export default function App() {
 
   return (
     <SidebarProvider>
-      <div className="relative flex h-screen w-full overflow-hidden gradient-bg">
-        {/* Neon background overlays */}
-        <div className="pointer-events-none fixed inset-0 -z-10 opacity-30">
-          <div className="absolute -top-32 left-0 size-[60vw] rounded-full bg-primary/20 blur-3xl"></div>
-          <div className="absolute bottom-0 right-0 size-[40vw] rounded-full bg-accent/20 blur-2xl"></div>
+      <div className="relative flex h-screen w-full overflow-hidden bg-background">
+        {/* Apple-style gradient background */}
+        <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-[40%] left-[10%] size-[60vw] rounded-full bg-gradient-to-br from-primary/20 via-accent/10 to-transparent blur-3xl animate-pulse"></div>
+          <div className="absolute top-[20%] -right-[10%] size-[50vw] rounded-full bg-gradient-to-bl from-accent/20 via-primary/10 to-transparent blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute -bottom-[20%] left-[30%] size-[40vw] rounded-full bg-gradient-to-tr from-primary/15 via-transparent to-accent/10 blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
         {/* Mobile Navigation */}
         <MobileNav

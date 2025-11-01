@@ -1,9 +1,8 @@
-import { Plus, Settings, BarChart3, Download, Upload, Home, Sparkles, Search, LogOut, Cpu, Code2 } from 'lucide-react';
+import { Plus, Settings, BarChart3, Download, Home, Sparkles, Search, LogOut, Cpu, Code2, Gamepad2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import {
   Sidebar,
   SidebarContent,
@@ -40,7 +39,16 @@ interface AppSidebarProps {
   onOpenCS2Tracker: () => void;
 }
 
-export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics, onOpenAI, onOpenOLXSearch, onOpenPCBuilder, onOpenPythonLearning, onOpenCS2Tracker }: AppSidebarProps) {
+export function AppSidebar({ 
+  onOpenSettings, 
+  onOpenImportExport, 
+  onOpenAnalytics, 
+  onOpenAI, 
+  onOpenOLXSearch, 
+  onOpenPCBuilder, 
+  onOpenPythonLearning, 
+  onOpenCS2Tracker 
+}: AppSidebarProps) {
   const { workspace, currentTabId, setCurrentTab, addTab, deleteTab, updateTab, authState, logout } = useStore();
   const { t } = useTranslation(workspace.settings.language);
   const [isNewTabDialogOpen, setIsNewTabDialogOpen] = useState(false);
@@ -58,35 +66,41 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
 
   return (
     <>
-      <Sidebar className="glass">
-        <SidebarHeader className="glass border-b border-sidebar-border p-4">
-          <div className="flex items-center gap-2">
-            <Home className="size-5" />
-            <h2>{workspace.name}</h2>
+      <Sidebar className="border-r border-border/60 bg-background">
+        <SidebarHeader className="border-b border-border/60 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground/10">
+                <Home className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold">{workspace.name}</span>
+            </div>
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="glass flex-1 overflow-y-auto">
+        <SidebarContent className="flex-1 overflow-y-auto">
           <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center justify-between px-4">
-              <span>Вкладки</span>
+            <SidebarGroupLabel className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Вкладки
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-accent/50"
                 onClick={() => setIsNewTabDialogOpen(true)}
               >
-                <Plus className="size-4" />
+                <Plus className="h-3.5 w-3.5" />
               </Button>
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <ScrollArea className="flex-1">
                 <SidebarMenu>
                   {(!workspace.tabs || workspace.tabs.length === 0) ? (
-                    <div className="px-4 py-8 text-center text-muted-foreground">
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                       <p className="mb-4">{t('emptyTab')}</p>
-                      <Button onClick={() => setIsNewTabDialogOpen(true)} size="sm">
-                        <Plus className="mr-2 size-4" />
+                      <Button onClick={() => setIsNewTabDialogOpen(true)} size="sm" className="rounded-lg">
+                        <Plus className="mr-2 h-3.5 w-3.5" />
                         {t('newTab')}
                       </Button>
                     </div>
@@ -99,21 +113,27 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
                             <SidebarMenuButton
                               isActive={currentTabId === tab.id}
                               onClick={() => setCurrentTab(tab.id)}
-                              className="w-full justify-between"
+                              className={`
+                                w-full justify-between rounded-lg transition-all
+                                ${currentTabId === tab.id 
+                                  ? 'bg-foreground/10 text-foreground hover:bg-foreground/15' 
+                                  : 'hover:bg-accent/50'
+                                }
+                              `}
                             >
-                              <span className="truncate">{tab.title}</span>
+                              <span className="truncate text-sm font-medium">{tab.title}</span>
                             </SidebarMenuButton>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 p-0 opacity-0 group-hover:opacity-100"
+                                className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 p-0 opacity-0 group-hover:opacity-100 rounded-lg"
                                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
                               >
                                 •••
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="rounded-lg">
                               <DropdownMenuItem
                                 onClick={() => {
                                   const newTitle = prompt(t('renameTab'), tab.title);
@@ -128,7 +148,7 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
                                     deleteTab(tab.id);
                                   }
                                 }}
-                                className="text-destructive"
+                                className="text-destructive focus:text-destructive"
                               >
                                 {t('deleteTab')}
                               </DropdownMenuItem>
@@ -143,56 +163,28 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="glass border-t border-sidebar-border p-4">
+        <SidebarFooter className="border-t border-border/60 p-3 space-y-1">
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenAI}>
-                <Sparkles className="size-4" />
-                <span>{t('aiAssistant')}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenOLXSearch}>
-                <Search className="size-4" />
-                <span>🛒 OLX Поиск</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenPCBuilder}>
-                <Cpu className="size-4" />
-                <span>🖥️ PC Builder</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenPythonLearning}>
-                <Code2 className="size-4" />
-                <span>🐍 Python Roadmap</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenCS2Tracker}>
-                <Cpu className="size-4" />
-                <span>🎮 CS2 Tracker</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenAnalytics}>
-                <BarChart3 className="size-4" />
-                <span>{t('analytics')}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenImportExport}>
-                <Download className="size-4" />
-                <span>Импорт/Экспорт</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenSettings}>
-                <Settings className="size-4" />
-                <span>{t('settings')}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {[
+              { icon: Sparkles, label: t('aiAssistant'), onClick: onOpenAI },
+              { icon: Search, label: 'OLX Поиск', onClick: onOpenOLXSearch },
+              { icon: Cpu, label: 'PC Builder', onClick: onOpenPCBuilder },
+              { icon: Code2, label: 'Python', onClick: onOpenPythonLearning },
+              { icon: Gamepad2, label: 'CS2 Tracker', onClick: onOpenCS2Tracker },
+              { icon: BarChart3, label: t('analytics'), onClick: onOpenAnalytics },
+              { icon: Download, label: 'Импорт/Экспорт', onClick: onOpenImportExport },
+              { icon: Settings, label: t('settings'), onClick: onOpenSettings },
+            ].map((item) => (
+              <SidebarMenuItem key={item.label}>
+                <SidebarMenuButton 
+                  onClick={item.onClick}
+                  className="rounded-lg hover:bg-accent/50 text-sm"
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
             <SidebarMenuItem>
               <SidebarMenuButton 
                 onClick={() => {
@@ -200,10 +192,12 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
                     logout();
                   }
                 }} 
-                className="text-destructive"
+                className="text-destructive hover:bg-destructive/10 rounded-lg text-sm"
               >
-                <LogOut className="size-4" />
-                <span>Выйти {authState.currentUser && `(${authState.currentUser.name})`}</span>
+                <LogOut className="h-4 w-4" />
+                <span className="truncate">
+                  Выйти {authState.currentUser && `(${authState.currentUser.name})`}
+                </span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -211,30 +205,31 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
       </Sidebar>
 
       <Dialog open={isNewTabDialogOpen} onOpenChange={setIsNewTabDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{t('newTab')}</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t('newTab')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="tab-title">{t('cardTitle')}</Label>
+              <Label htmlFor="tab-title" className="text-sm font-medium">{t('cardTitle')}</Label>
               <Input
                 id="tab-title"
                 value={newTabTitle}
                 onChange={(e) => setNewTabTitle(e.target.value)}
                 placeholder="Например: Учёба, Проекты..."
+                className="rounded-lg"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleCreateTab();
                 }}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tab-template">Шаблон</Label>
+              <Label htmlFor="tab-template" className="text-sm font-medium">Шаблон</Label>
               <Select value={newTabTemplate} onValueChange={(v: string) => setNewTabTemplate(v as TabTemplate)}>
-                <SelectTrigger id="tab-template">
+                <SelectTrigger id="tab-template" className="rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-lg">
                   <SelectItem value="blank">{t('templateBlank')}</SelectItem>
                   <SelectItem value="school">{t('templateSchool')}</SelectItem>
                   <SelectItem value="cooking">{t('templateCooking')}</SelectItem>
@@ -246,10 +241,10 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewTabDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsNewTabDialogOpen(false)} className="rounded-lg">
               {t('cancel')}
             </Button>
-            <Button onClick={handleCreateTab} disabled={!newTabTitle.trim()}>
+            <Button onClick={handleCreateTab} disabled={!newTabTitle.trim()} className="rounded-lg">
               {t('create')}
             </Button>
           </DialogFooter>
