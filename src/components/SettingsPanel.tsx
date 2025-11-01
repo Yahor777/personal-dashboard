@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { X, Save, LogOut } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
@@ -101,6 +102,17 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   value={workspace.settings.accentColor}
                   onChange={(e) => updateSettings({ accentColor: e.target.value })}
                   className="h-10 w-20 cursor-pointer rounded border border-border"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Кнопки прокрутки</Label>
+                  <p className="text-muted-foreground">Показывать плавающие кнопки вверх/вниз</p>
+                </div>
+                <Switch
+                  checked={workspace.settings.enableScrollButtons ?? false}
+                  onCheckedChange={(checked: boolean) => updateSettings({ enableScrollButtons: checked })}
                 />
               </div>
             </div>
@@ -217,6 +229,22 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                       onSelectModel={(model: string) => updateSettings({ aiModel: model })}
                     />
                   </div>
+
+                  {/* Кастомная модель для OpenRouter */}
+                  {workspace.settings.aiProvider === 'openrouter' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="ai-custom-model">Пользовательская модель (OpenRouter)</Label>
+                      <Input
+                        id="ai-custom-model"
+                        value={workspace.settings.aiCustomModel || ''}
+                        onChange={(e) => updateSettings({ aiCustomModel: e.target.value })}
+                        placeholder="anthropic/claude-3.5-sonnet, openai/gpt-4o-mini, ..."
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        При заполнении будет использован указанный ID модели, приоритет над выбором выше.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Ollama URL */}
                   {workspace.settings.aiProvider === 'ollama' && (

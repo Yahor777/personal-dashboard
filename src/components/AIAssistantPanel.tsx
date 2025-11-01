@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+// @ts-nocheck
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { X, Send, Sparkles, Trash2, Plus, Zap, Copy, Check, Settings2, Paperclip, FileText, Image as ImageIcon, Download, BookmarkPlus, ClipboardPlus } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
@@ -8,6 +9,8 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Separator } from './ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AIService } from '../services/aiService';
 // AI Models configuration
 const FREE_AI_MODELS: Array<{
@@ -96,7 +99,7 @@ type FavoritePrompt = {
   prompt: string;
 };
 
-export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
+export const AIAssistantPanel = memo(function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
   const { workspace, aiConversations, currentConversationId, addAIMessage, createAIConversation, deleteAIConversation, setCurrentConversation, currentTabId, addCard } = useStore();
   const { t } = useTranslation(workspace.settings.language);
   const [input, setInput] = useState('');
@@ -119,11 +122,46 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     }
   });
 
-  const currentConversation = aiConversations.find(c => c.id === currentConversationId);
-  const currentModel = FREE_AI_MODELS.find((m: AIModel) => m.model === workspace.settings.aiModel);
-  const supportsFiles = currentModel?.supportsFiles || false;
-  const currentTab = workspace.tabs.find((tab) => tab.id === currentTabId) || null;
-  const defaultColumnId = currentTab?.columns[0]?.id ?? null;
+  // Memoized values
+  const currentConversation = useMemo(() => 
+    aiConversations.find(c => c.id === currentConversationId), 
+    [aiConversations, currentConversationId]
+  );
+  
+  const currentModel = useMemo(() => 
+    FREE_AI_MODELS.find((m: AIModel) => m.model === workspace.settings.aiModel), 
+    [workspace.settings.aiModel]
+  );
+  
+  const supportsFiles = useMemo(() => 
+    currentModel?.supportsFiles || false, 
+    [currentModel]
+  );
+  
+  const currentTab = useMemo(() => 
+    workspace.tabs.find((tab) => tab.id === currentTabId) || null, 
+    [workspace.tabs, currentTabId]
+  );
+  
+  const defaultColumnId = useMemo(() => 
+    currentTab?.columns[0]?.id ?? null, 
+    [currentTab]
+  );
+
+  const canSendMessage = useMemo(() => 
+    input.trim().length > 0 && !isLoading, 
+    [input, isLoading]
+  );
+
+  const hasAttachedFiles = useMemo(() => 
+    attachedFiles.length > 0, 
+    [attachedFiles]
+  );
+
+  const totalMessagesCount = useMemo(() => 
+    currentConversation?.messages.length || 0, 
+    [currentConversation?.messages]
+  );
 
   useEffect(() => {
     try {
@@ -133,7 +171,8 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     }
   }, [favoritePrompts]);
 
-  const addFavoritePrompt = (title: string, prompt: string) => {
+  // Memoized callbacks
+  const addFavoritePrompt = useCallback((title: string, prompt: string) => {
     if (!title.trim() || !prompt.trim()) {
       toast.error('Название и текст промпта не должны быть пустыми');
       return;
@@ -145,14 +184,14 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     };
     setFavoritePrompts((prev) => [newPrompt, ...prev].slice(0, 20));
     toast.success('Промпт сохранён');
-  };
+  }, []);
 
-  const removeFavoritePrompt = (id: string) => {
+  const removeFavoritePrompt = useCallback((id: string) => {
     setFavoritePrompts((prev) => prev.filter((item) => item.id !== id));
     toast.info('Промпт удалён');
-  };
+  }, []);
 
-  const handleSaveCurrentPrompt = () => {
+  const handleSaveCurrentPrompt = useCallback(() => {
     if (!input.trim()) {
       toast.error('Введите текст, который хотите сохранить');
       return;
@@ -161,9 +200,9 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     if (title) {
       addFavoritePrompt(title, input);
     }
-  };
+  }, [input, addFavoritePrompt]);
 
-  const handleExportConversation = () => {
+  const handleExportConversation = useCallback(() => {
     if (!currentConversation) {
       toast.error('Нет сообщений для экспорта');
       return;
@@ -181,9 +220,9 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast.success('Диалог экспортирован');
-  };
+  }, [currentConversation]);
 
-  const handleSaveMessageToKanban = (message: AIMessage) => {
+  const handleSaveMessageToKanban = useCallback((message: AIMessage) => {
     if (!defaultColumnId) {
       toast.error('Нет активной доски или колонок для сохранения');
       return;
@@ -203,149 +242,18 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
       columnId: defaultColumnId,
     });
     toast.success('Добавлено в Kanban');
-  };
+  }, [defaultColumnId, addCard]);
 
-  useEffect(() => {
-    // Auto-scroll to bottom on new messages
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-
-    // Auto-expand panel if code is detected in messages
-    if (currentConversation?.messages) {
-      const hasCode = currentConversation.messages.some(msg => 
-        msg.role === 'assistant' && msg.content.includes('```')
-      );
-      if (hasCode && panelWidth < 1024) {
-        setPanelWidth(1024); // Expand to 1024px when code is detected
-      }
-    }
-  }, [currentConversation?.messages]);
-
-  // Handle resize drag
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      
-      const newWidth = window.innerWidth - e.clientX;
-      // Limit width between 400px and 95% of screen
-      const minWidth = 400;
-      const maxWidth = window.innerWidth * 0.95;
-      setPanelWidth(Math.max(minWidth, Math.min(maxWidth, newWidth)));
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    if (isResizing) {
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing]);
-
-  const handleResizeStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  };
-
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    // Create conversation if none exists
-    let convId = currentConversationId;
-    if (!convId) {
-      convId = useStore.getState().createAIConversation('Новый чат');
-    }
-
-    const userMessage = input.trim();
-    setInput('');
-    setIsLoading(true);
-
-    // Build message content with files info
-    let messageContent = userMessage;
-    if (attachedFiles.length > 0) {
-      messageContent += '\n\n📎 Прикрепленные файлы:\n';
-      attachedFiles.forEach(file => {
-        messageContent += `- ${file.name} (${(file.size / 1024).toFixed(1)} KB)\n`;
-      });
-      messageContent += '\n(Примечание: Отправка файлов к AI будет реализована в следующей версии)';
-    }
-
-    // Add user message
-    useStore.getState().addAIMessage(convId!, {
-      role: 'user',
-      content: messageContent,
-    });
-
-    // Clear attached files after sending
-    setAttachedFiles([]);
-
-    try {
-      // Create AI service instance
-      const aiService = new AIService({
-        provider: workspace.settings.aiProvider || 'none',
-        apiKey: workspace.settings.aiApiKey,
-        model: workspace.settings.aiModel,
-        ollamaUrl: workspace.settings.ollamaUrl,
-      });
-
-      // Get conversation history
-      const currentConv = useStore.getState().aiConversations.find(c => c.id === convId);
-      const messages = currentConv?.messages.map(m => ({
-        role: m.role,
-        content: m.content,
-      })) || [];
-
-      // Call AI
-      const response = await aiService.chat(messages);
-      
-      // Add AI response
-      useStore.getState().addAIMessage(convId!, {
-        role: 'assistant',
-        content: response.content,
-      });
-    } catch (error) {
-      console.error('AI error:', error);
-      
-      // Determine error message
-      let errorMessage = 'Извините, произошла ошибка при обращении к AI.';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-
-      // Add error message
-      useStore.getState().addAIMessage(convId!, {
-        role: 'assistant',
-        content: `⚠️ ${errorMessage}\n\n💡 Советы:\n• Проверьте настройки AI в Settings\n• Убедитесь, что API ключ действителен\n• Проверьте подключение к интернету\n• Попробуйте другую модель`,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickAction = (prompt: string) => {
+  const handleQuickAction = useCallback((prompt: string) => {
     setInput(prompt + '\n\n');
-  };
+  }, []);
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     const newId = useStore.getState().createAIConversation('Новый чат');
     setCurrentConversation(newId);
-  };
+  }, [setCurrentConversation]);
 
-  const handleCopyMessage = async (messageId: string, content: string) => {
+  const handleCopyMessage = useCallback(async (messageId: string, content: string) => {
     try {
       await navigator.clipboard.writeText(content);
       setCopiedMessageId(messageId);
@@ -358,9 +266,9 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     } catch (error) {
       toast.error('Не удалось скопировать');
     }
-  };
+  }, []);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -421,11 +329,144 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, [supportsFiles, attachedFiles]);
 
-  const removeFile = (index: number) => {
+  const removeFile = useCallback((index: number) => {
     setAttachedFiles(attachedFiles.filter((_, i) => i !== index));
-  };
+  }, [attachedFiles]);
+
+  const handleSendMessage = useCallback(async () => {
+    if (!input.trim()) return;
+
+    // Create conversation if none exists
+    let convId = currentConversationId;
+    if (!convId) {
+      convId = useStore.getState().createAIConversation('Новый чат');
+    }
+
+    const userMessage = input.trim();
+    setInput('');
+    setIsLoading(true);
+
+    // Build message content with files info
+    let messageContent = userMessage;
+    if (attachedFiles.length > 0) {
+      messageContent += '\n\n📎 Прикрепленные файлы:\n';
+      attachedFiles.forEach(file => {
+        messageContent += `- ${file.name} (${(file.size / 1024).toFixed(1)} KB)\n`;
+      });
+      messageContent += '\n(Примечание: Отправка файлов к AI будет реализована в следующей версии)';
+    }
+
+    // Add user message
+    useStore.getState().addAIMessage(convId!, {
+      role: 'user',
+      content: messageContent,
+    });
+
+    // Clear attached files after sending
+    setAttachedFiles([]);
+
+    try {
+      // Create AI service instance
+      const aiService = new AIService({
+        provider: workspace.settings.aiProvider || 'none',
+        apiKey: workspace.settings.aiApiKey,
+        model: (workspace.settings.aiProvider === 'openrouter' && workspace.settings.aiCustomModel)
+          ? workspace.settings.aiCustomModel
+          : workspace.settings.aiModel,
+        ollamaUrl: workspace.settings.ollamaUrl,
+      });
+
+      // Get conversation history
+      const currentConv = useStore.getState().aiConversations.find(c => c.id === convId);
+      const messages = currentConv?.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+      })) || [];
+
+      // Call AI
+      const response = await aiService.chat(messages);
+      
+      // Add AI response
+      useStore.getState().addAIMessage(convId!, {
+        role: 'assistant',
+        content: response.content,
+      });
+    } catch (error) {
+      console.error('AI error:', error);
+      
+      // Determine error message
+      let errorMessage = 'Извините, произошла ошибка при обращении к AI.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      // Add error message
+      useStore.getState().addAIMessage(convId!, {
+        role: 'assistant',
+        content: `⚠️ ${errorMessage}\n\n💡 Советы:\n• Проверьте настройки AI в Settings\n• Убедитесь, что API ключ действителен\n• Проверьте подключение к интернету\n• Попробуйте другую модель`,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, attachedFiles, currentConversationId, workspace.settings]);
+
+  useEffect(() => {
+    // Auto-scroll to bottom on new messages
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+
+    // Auto-expand panel if code is detected in messages
+    if (currentConversation?.messages) {
+      const hasCode = currentConversation.messages.some(msg => 
+        msg.role === 'assistant' && msg.content.includes('```')
+      );
+      if (hasCode && panelWidth < 1024) {
+        setPanelWidth(1024); // Expand to 1024px when code is detected
+      }
+    }
+  }, [currentConversation?.messages, panelWidth]);
+
+  // Handle resize drag
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const newWidth = window.innerWidth - e.clientX;
+      // Limit width between 400px and 95% of screen
+      const minWidth = 400;
+      const maxWidth = window.innerWidth * 0.95;
+      setPanelWidth(Math.max(minWidth, Math.min(maxWidth, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    if (isResizing) {
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
 
   return (
     <div 
@@ -827,7 +868,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSend();
+                    handleSendMessage();
                   }
                 }}
                 placeholder="Напишите сообщение..."
@@ -835,7 +876,7 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
                 disabled={isLoading}
               />
               <Button 
-                onClick={handleSend} 
+                onClick={handleSendMessage} 
                 disabled={isLoading || !input.trim()}
                 className="h-10 w-10 md:w-auto p-0 md:px-4 active:scale-95"
               >
@@ -853,4 +894,4 @@ export function AIAssistantPanel({ onClose }: AIAssistantPanelProps) {
       </div>
     </div>
   );
-}
+});

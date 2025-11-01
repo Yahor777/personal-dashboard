@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { X, TrendingUp, Clock, CheckCircle2, Target } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';

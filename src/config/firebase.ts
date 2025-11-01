@@ -1,10 +1,8 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getAnalytics } from 'firebase/analytics';
-import { getDatabase } from 'firebase/database';
+﻿import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getDatabase } from "firebase/database";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyArknUpV4qb2dvcMKRNAQDowJaLid7vBLI",
   authDomain: "personal-dashboard-204da.firebaseapp.com",
@@ -13,29 +11,25 @@ const firebaseConfig = {
   storageBucket: "personal-dashboard-204da.firebasestorage.app",
   messagingSenderId: "330879438401",
   appId: "1:330879438401:web:ddfbe0211ff2b9eafbc0c0",
-  measurementId: "G-LDQBBCFH4K"
+  measurementId: "G-LDQBBCFH4K",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Analytics only if not blocked
-let analytics;
+let analytics: ReturnType<typeof getAnalytics> | undefined;
 try {
   analytics = getAnalytics(app);
 } catch (error) {
-  console.log('Analytics blocked by browser extension (AdBlock/Privacy) - this is normal');
+  console.log("Analytics blocked by browser extension (AdBlock/Privacy) - this is normal");
 }
 
-// Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const database = getDatabase(app);
+export { analytics };
 
-// Configure Google Auth Provider
 googleProvider.setCustomParameters({
-  prompt: 'select_account',
-  // Add these to fix auth issues
-  access_type: 'offline',
-  include_granted_scopes: 'true'
+  prompt: "select_account",
+  access_type: "offline",
+  include_granted_scopes: "true",
 });

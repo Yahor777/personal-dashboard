@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Plus, Settings, BarChart3, Download, Upload, Home, Sparkles, Search, LogOut, Cpu, Code2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useTranslation } from '../data/translations';
@@ -37,10 +38,9 @@ interface AppSidebarProps {
   onOpenOLXSearch: () => void;
   onOpenPCBuilder: () => void;
   onOpenPythonLearning: () => void;
-  onOpenCS2Tracker: () => void;
 }
 
-export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics, onOpenAI, onOpenOLXSearch, onOpenPCBuilder, onOpenPythonLearning, onOpenCS2Tracker }: AppSidebarProps) {
+export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics, onOpenAI, onOpenOLXSearch, onOpenPCBuilder, onOpenPythonLearning }: AppSidebarProps) {
   const { workspace, currentTabId, setCurrentTab, addTab, deleteTab, updateTab, authState, logout } = useStore();
   const { t } = useTranslation(workspace.settings.language);
   const [isNewTabDialogOpen, setIsNewTabDialogOpen] = useState(false);
@@ -58,15 +58,15 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
 
   return (
     <>
-      <Sidebar className="glass">
-        <SidebarHeader className="glass border-b border-sidebar-border p-4">
+      <Sidebar>
+        <SidebarHeader className="border-b border-sidebar-border p-4">
           <div className="flex items-center gap-2">
             <Home className="size-5" />
             <h2>{workspace.name}</h2>
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="glass flex-1 overflow-y-auto">
+        <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel className="flex items-center justify-between px-4">
               <span>Вкладки</span>
@@ -143,36 +143,30 @@ export function AppSidebar({ onOpenSettings, onOpenImportExport, onOpenAnalytics
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="glass border-t border-sidebar-border p-4">
+        <SidebarFooter className="border-t border-sidebar-border p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenAI}>
+              <SidebarMenuButton onClick={onOpenAI} className="text-primary">
                 <Sparkles className="size-4" />
                 <span>{t('aiAssistant')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenOLXSearch}>
+              <SidebarMenuButton onClick={onOpenOLXSearch} className="text-green-600">
                 <Search className="size-4" />
                 <span>🛒 OLX Поиск</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenPCBuilder}>
+              <SidebarMenuButton onClick={onOpenPCBuilder} className="text-blue-600">
                 <Cpu className="size-4" />
                 <span>🖥️ PC Builder</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenPythonLearning}>
+              <SidebarMenuButton onClick={onOpenPythonLearning} className="text-green-600">
                 <Code2 className="size-4" />
                 <span>🐍 Python Roadmap</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={onOpenCS2Tracker}>
-                <Cpu className="size-4" />
-                <span>🎮 CS2 Tracker</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>

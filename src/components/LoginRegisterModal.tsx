@@ -1,38 +1,89 @@
-import { useState } from 'react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { AlertCircle, Sparkles } from 'lucide-react';
-import { signInWithRedirect, signInWithPopup, getRedirectResult } from 'firebase/auth';
+﻿import { FormEvent, useEffect, useState } from "react";
+import { getRedirectResult, signInWithPopup, signInWithRedirect } from "firebase/auth";
+import { AlertCircle, Sparkles, X } from "lucide-react";
+
 import { auth, googleProvider } from '../config/firebase';
-import { useEffect } from 'react';
+import { Button } from "./ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+
+type GoogleUser = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+};
 
 interface LoginRegisterModalProps {
   onLogin: (email: string, password: string) => boolean;
   onRegister: (name: string, email: string, password: string) => boolean;
-  onGoogleLogin?: (user: any) => void;
+  onGoogleLogin?: (user: GoogleUser) => void;
+  onClose?: () => void;
 }
 
-export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: LoginRegisterModalProps) {
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [registerName, setRegisterName] = useState('');
-  const [registerEmail, setRegisterEmail] = useState('');
-  const [registerPassword, setRegisterPassword] = useState('');
-  const [error, setError] = useState('');
+const MIN_PASSWORD_LENGTH = 6;
+
+function getFirebaseErrorMessage(error: unknown): string {
+  if (typeof error === "object" && error && "code" in error) {
+    const code = String((error as { code?: string }).code ?? "");
+
+    if (code.includes("popup-blocked")) {
+      return "Всплывающее окно заблокировано. Разрешите всплывающие окна для этого сайта.";
+    }
+    if (code.includes("popup-closed-by-user")) {
+      return "Окно Google было закрыто до завершения авторизации.";
+    }
+    if (code.includes("cancelled-popup-request")) {
+      return "Попробуйте снова после завершения предыдущей попытки входа.";
+    }
+    if (code.includes("network-request-failed")) {
+      return "Проблема с сетью. Проверьте интернет-соединение.";
+    }
+    if (code.includes("unauthorized-domain")) {
+      return "Домен не авторизован в Firebase. Добавьте текущий домен в Firebase Console.";
+    }
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    return String((error as { message?: string }).message ?? "Произошла ошибка");
+  }
+
+  return "Произошла ошибка. Попробуйте снова.";
+}
+
+export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin, onClose }: LoginRegisterModalProps) {
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  const [registerName, setRegisterName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Check for redirect result on component mount
   useEffect(() => {
-    const checkRedirectResult = async () => {
-      setGoogleLoading(true);
+    let isMounted = true;
+
+    const resolveRedirectResult = async () => {
       try {
+        setGoogleLoading(true);
         const result = await getRedirectResult(auth);
-        if (result && result.user && onGoogleLogin) {
-          console.log('Google Sign-In успешен:', result.user.email);
+        if (!isMounted) {
+          return;
+        }
+
+        if (result?.user && onGoogleLogin) {
           onGoogleLogin({
             uid: result.user.uid,
             email: result.user.email,
@@ -40,334 +91,283 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin }: Login
             photoURL: result.user.photoURL,
           });
         }
-      } catch (error: any) {
-        console.error('Google redirect error:', error);
-        
-        // Более детальные сообщения об ошибках
-        if (error.code === 'auth/popup-blocked') {
-          setError('Всплывающее окно заблокировано. Разрешите всплывающие окна для этого сайта.');
-        } else if (error.code === 'auth/network-request-failed') {
-          setError('Проблема с сетью. Проверьте подключение к интернету.');
-        } else if (error.code === 'auth/unauthorized-domain') {
-          setError('Домен не авторизован в Firebase. Добавьте yahor777.github.io в Firebase Console.');
-        } else {
-          setError('Ошибка входа через Google: ' + (error.message || 'Попробуйте снова'));
+      } catch (redirectError) {
+        if (isMounted) {
+          setError(getFirebaseErrorMessage(redirectError));
         }
       } finally {
-        setGoogleLoading(false);
+        if (isMounted) {
+          setGoogleLoading(false);
+        }
       }
     };
 
-    checkRedirectResult();
+    resolveRedirectResult();
+
+    return () => {
+      isMounted = false;
+    };
   }, [onGoogleLogin]);
 
-  // Google Sign-In handler with popup fallback
-  const handleGoogleSignIn = async () => {
-    setError('');
-    setGoogleLoading(true);
+  useEffect(() => {
+    if (!onClose) {
+      return;
+    }
 
-    try {
-      console.log('🔐 Запуск Google Sign-In...');
-      console.log('Firebase Auth инициализирован:', !!auth);
-      console.log('Google Provider настроен:', !!googleProvider);
-      console.log('Текущий URL:', window.location.href);
-      
-      // Try popup first (works better if domains are configured)
-      try {
-        console.log('Попытка входа через popup...');
-        const result = await signInWithPopup(auth, googleProvider);
-        
-        if (result.user && onGoogleLogin) {
-          console.log('✅ Вход через popup успешен:', result.user.email);
-          onGoogleLogin({
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-          });
-        }
-        setGoogleLoading(false);
-        return;
-      } catch (popupError: any) {
-        console.log('Popup не сработал, пробуем redirect...', popupError.code);
-        
-        // If popup failed, try redirect
-        if (popupError.code === 'auth/popup-blocked' || 
-            popupError.code === 'auth/popup-closed-by-user' ||
-            popupError.code === 'auth/cancelled-popup-request') {
-          console.log('Переход на redirect метод...');
-          await signInWithRedirect(auth, googleProvider);
-          console.log('✅ Редирект на Google начался...');
-          return;
-        }
-        
-        // If it's an auth error, throw it
-        throw popupError;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
       }
-    } catch (error: any) {
-      console.error('❌ Google sign-in error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      
-      if (error.code === 'auth/invalid-api-key' || error.code === 'auth/invalid-project-id') {
-        setError('Firebase не настроен. Пожалуйста, настройте Firebase в консоли разработчика.');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        setError('⚠️ Домен не авторизован!\n\nДобавьте yahor777.github.io в:\nFirebase Console → Authentication → Settings → Authorized domains');
-      } else if (error.code === 'auth/operation-not-allowed') {
-        setError('Google вход отключен.\n\nВключите в:\nFirebase Console → Authentication → Sign-in method → Google');
-      } else {
-        setError('Ошибка входа через Google: ' + (error.message || 'Неизвестная ошибка'));
-      }
-      setGoogleLoading(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      onClose?.();
     }
   };
 
-  // Email validation
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  const submitLogin = (formEvent: FormEvent<HTMLFormElement>) => {
+    formEvent.preventDefault();
+    setError(null);
 
     if (!loginEmail || !loginPassword) {
-      setError('Заполните все поля');
-      setIsLoading(false);
+      setError("Заполните все поля");
       return;
     }
 
     if (!isValidEmail(loginEmail)) {
-      setError('Введите корректный email адрес');
-      setIsLoading(false);
+      setError("Введите корректный email адрес");
       return;
     }
 
-    // Simulate async operation
-    setTimeout(() => {
+    setIsLoading(true);
+
+    window.setTimeout(() => {
       const success = onLogin(loginEmail, loginPassword);
       if (!success) {
-        setError('Неверный email или пароль');
+        setError("Неверный email или пароль");
       }
       setIsLoading(false);
     }, 300);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  const submitRegister = (formEvent: FormEvent<HTMLFormElement>) => {
+    formEvent.preventDefault();
+    setError(null);
 
     if (!registerName || !registerEmail || !registerPassword) {
-      setError('Заполните все поля');
-      setIsLoading(false);
+      setError("Заполните все поля");
       return;
     }
 
     if (!isValidEmail(registerEmail)) {
-      setError('Введите корректный email адрес');
-      setIsLoading(false);
+      setError("Введите корректный email адрес");
       return;
     }
 
-    if (registerPassword.length < 6) {
-      setError('Пароль должен быть минимум 6 символов');
-      setIsLoading(false);
+    if (registerPassword.length < MIN_PASSWORD_LENGTH) {
+      setError(`Пароль должен быть минимум ${MIN_PASSWORD_LENGTH} символов`);
       return;
     }
 
-    // Simulate async operation
-    setTimeout(() => {
+    setIsLoading(true);
+
+    window.setTimeout(() => {
       const success = onRegister(registerName, registerEmail, registerPassword);
       if (!success) {
-        setError('Пользователь с таким email уже существует');
+        setError("Пользователь с таким email уже существует");
       }
       setIsLoading(false);
     }, 300);
   };
 
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setGoogleLoading(true);
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result.user && onGoogleLogin) {
+        onGoogleLogin({
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName,
+          photoURL: result.user.photoURL,
+        });
+      }
+    } catch (popupError: unknown) {
+      const code =
+        typeof popupError === "object" && popupError && "code" in popupError
+          ? String((popupError as { code?: string }).code ?? "")
+          : "";
+
+      if (
+        code.includes("popup-blocked") ||
+        code.includes("popup-closed-by-user") ||
+        code.includes("cancelled-popup-request")
+      ) {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+
+      setError(getFirebaseErrorMessage(popupError));
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div className="relative w-full max-w-md p-4" onClick={(event) => event.stopPropagation()}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-4 top-4 h-8 w-8 text-muted-foreground"
+          onClick={() => onClose?.()}
+          aria-label="Закрыть модальное окно"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+
         <Tabs defaultValue="login" className="w-full">
-          <Card>
-            <CardHeader className="space-y-1">
-              <div className="flex items-center justify-center mb-4">
+          <Card className="overflow-hidden">
+            <CardHeader className="space-y-2">
+              <div className="flex justify-center">
                 <div className="rounded-full bg-primary/10 p-3">
-                  <Sparkles className="size-8 text-primary" />
+                  <Sparkles className="h-8 w-8 text-primary" />
                 </div>
               </div>
-              <CardTitle className="text-2xl text-center">Personal Dashboard</CardTitle>
+              <CardTitle className="text-center text-2xl font-semibold">Personal Dashboard</CardTitle>
               <CardDescription className="text-center">
-                Управляйте задачами с AI ассистентом
+                Быстрый доступ к задачам, уведомлениям и OLX поиску в одном месте.
               </CardDescription>
             </CardHeader>
 
-            {/* Google Sign-In Button */}
-            <CardContent className="pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading}
-              >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                {googleLoading ? 'Вход через Google...' : 'Войти через Google'}
-              </Button>
+            <CardContent className="pt-0">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Войти</TabsTrigger>
+                <TabsTrigger value="register">Регистрация</TabsTrigger>
+              </TabsList>
 
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+              {error ? (
+                <div className="mt-4 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4" />
+                  <p className="text-sm leading-5">{error}</p>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Или используйте email
-                  </span>
-                </div>
-              </div>
-            </CardContent>
+              ) : null}
 
-            <TabsList className="grid w-full grid-cols-2 mx-6">
-              <TabsTrigger value="login">Вход</TabsTrigger>
-              <TabsTrigger value="register">Регистрация</TabsTrigger>
-            </TabsList>
-
-            {/* Login Tab */}
-            <TabsContent value="login">
-              <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4">
+              <TabsContent value="login" className="mt-6">
+                <form className="space-y-4" onSubmit={submitLogin}>
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <Input
                       id="login-email"
                       type="email"
-                      placeholder="your@email.com"
                       value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
+                      onChange={(event) => setLoginEmail(event.target.value)}
+                      placeholder="you@example.com"
+                      autoComplete="email"
                       required
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Пароль</Label>
                     <Input
                       id="login-password"
                       type="password"
-                      placeholder="••••••"
                       value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
+                      onChange={(event) => setLoginPassword(event.target.value)}
+                      placeholder="********"
+                      autoComplete="current-password"
                       required
                     />
                   </div>
 
-                  {error && (
-                    <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                      <AlertCircle className="size-4" />
-                      {error}
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Вход...' : 'Войти'}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Выполняем вход..." : "Войти"}
                   </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
+                </form>
+              </TabsContent>
 
-            {/* Register Tab */}
-            <TabsContent value="register">
-              <form onSubmit={handleRegister}>
-                <CardContent className="space-y-4">
+              <TabsContent value="register" className="mt-6">
+                <form className="space-y-4" onSubmit={submitRegister}>
                   <div className="space-y-2">
                     <Label htmlFor="register-name">Имя</Label>
                     <Input
                       id="register-name"
-                      type="text"
-                      placeholder="Ваше имя"
                       value={registerName}
-                      onChange={(e) => setRegisterName(e.target.value)}
+                      onChange={(event) => setRegisterName(event.target.value)}
+                      placeholder="Иван Иванов"
+                      autoComplete="name"
                       required
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="register-email">Email</Label>
                     <Input
                       id="register-email"
                       type="email"
-                      placeholder="your@email.com"
                       value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
+                      onChange={(event) => setRegisterEmail(event.target.value)}
+                      placeholder="you@example.com"
+                      autoComplete="email"
                       required
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Пароль</Label>
                     <Input
                       id="register-password"
                       type="password"
-                      placeholder="••••••"
                       value={registerPassword}
-                      onChange={(e) => setRegisterPassword(e.target.value)}
+                      onChange={(event) => setRegisterPassword(event.target.value)}
+                      placeholder="Минимум 6 символов"
+                      autoComplete="new-password"
                       required
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Минимум 6 символов
-                    </p>
                   </div>
 
-                  {error && (
-                    <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                      <AlertCircle className="size-4" />
-                      {error}
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Создаем аккаунт..." : "Зарегистрироваться"}
                   </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
+                </form>
+              </TabsContent>
+
+              <div className="mt-6 flex items-center gap-2 text-xs uppercase text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                <span>или</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 w-full"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+              >
+                {googleLoading ? "Подключаем Google..." : "Войти через Google"}
+              </Button>
+            </CardContent>
+
+            <CardFooter className="justify-center text-center text-xs text-muted-foreground">
+              Продолжая, вы подтверждаете, что согласны с политикой конфиденциальности и принятиями оферты.
+            </CardFooter>
           </Card>
         </Tabs>
-
-        <div className="mt-4 space-y-2">
-          <p className="text-center text-sm text-muted-foreground">
-            Данные хранятся локально в вашем браузере
-          </p>
-          <p className="text-center text-xs text-muted-foreground">
-            🔒 Для Google входа требуется настройка Firebase
-          </p>
-        </div>
       </div>
     </div>
   );

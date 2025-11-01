@@ -23,6 +23,16 @@ app.use(cors({
 
 app.use(express.json());
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err.message);
+  res.status(500).json({
+    ok: false,
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
 // Rate Limiter
 const maxPerMinute = parseInt(process.env.MAX_REQUESTS_PER_MINUTE || '60', 10);
 const limiter = new RateLimiter(maxPerMinute);
@@ -138,22 +148,25 @@ app.post('/api/search', async (req, res) => {
   }
 });
 
-// Грейсфул-шатдаун: корректно закрываем браузер Puppeteer
-async function gracefulShutdown(signal) {
-  console.log(`[Server] Received ${signal}. Shutting down gracefully...`);
-  try {
-    await closePuppeteerBrowser();
-  } catch (e) {
-    console.warn('[Server] Error closing Puppeteer:', e?.message || e);
-  } finally {
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ ok: false, error: 'Endpoint not found' });
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  server.close(() => {
     process.exit(0);
-  }
-}
+  });
+});
 
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => {
+  server.close(() => {
+    process.exit(0);
+  });
+});
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend server listening on port ${PORT}`);
 });
 

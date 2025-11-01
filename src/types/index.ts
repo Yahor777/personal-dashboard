@@ -1,11 +1,17 @@
-// Core Types for MySpaceHub
+// Core domain types shared across the dashboard
+export type CardType =
+  | "task"
+  | "flashcard"
+  | "recipe"
+  | "note"
+  | "pc-component"
+  | "pc-build";
 
-export type CardType = 'task' | 'flashcard' | 'recipe' | 'note' | 'pc-component' | 'pc-build';
-export type Priority = 'low' | 'medium' | 'high';
-export type Language = 'ru' | 'pl' | 'en';
-export type Theme = 'light' | 'dark' | 'neon' | 'minimal';
-export type ComponentCondition = 'new' | 'like-new' | 'good' | 'fair' | 'for-parts';
-export type AIProvider = 'none' | 'openrouter' | 'openai' | 'ollama' | 'perplexity';
+export type Priority = "low" | "medium" | "high";
+export type Language = "ru" | "pl" | "en";
+export type Theme = "light" | "dark" | "neon" | "minimal";
+export type ComponentCondition = "new" | "like-new" | "good" | "fair" | "for-parts";
+export type AIProvider = "none" | "openrouter" | "openai" | "ollama" | "perplexity";
 
 export interface ChecklistItem {
   id: string;
@@ -23,7 +29,7 @@ export interface Attachment {
   id: string;
   name: string;
   url: string;
-  type: 'file' | 'photo' | 'link';
+  type: "file" | "photo" | "link";
   size?: number;
   uploadedAt?: string;
 }
@@ -31,7 +37,7 @@ export interface Attachment {
 export interface CardImage {
   id: string;
   url: string;
-  dataUrl?: string; // base64 for local storage
+  dataUrl?: string;
   caption?: string;
   tags: string[];
   uploadedAt: string;
@@ -46,7 +52,7 @@ export interface Reminder {
 export interface Card {
   id: string;
   title: string;
-  description: string; // Markdown
+  description: string;
   type: CardType;
   priority: Priority;
   tags: string[];
@@ -60,23 +66,19 @@ export interface Card {
   order: number;
   createdAt: string;
   updatedAt: string;
-  // Flashcard specific
   question?: string;
   answer?: string;
-  // Recipe specific
   ingredients?: string[];
   cookingTime?: number;
-  // PC Component specific
-  componentType?: string; // 'gpu' | 'cpu' | 'ram' | 'motherboard' | etc
+  componentType?: string;
   condition?: ComponentCondition;
   myPrice?: number;
   marketPrice?: number;
   olxLink?: string;
   serialNumber?: string;
   specifications?: Record<string, string>;
-  // Timer
   pomodoroCount?: number;
-  timeSpent?: number; // in minutes
+  timeSpent?: number;
 }
 
 export interface Column {
@@ -86,7 +88,13 @@ export interface Column {
   cardIds: string[];
 }
 
-export type TabTemplate = 'school' | 'cooking' | 'personal' | 'blank' | 'pc-repair' | 'marketplace';
+export type TabTemplate =
+  | "school"
+  | "cooking"
+  | "personal"
+  | "blank"
+  | "pc-repair"
+  | "marketplace";
 
 export interface Tab {
   id: string;
@@ -109,8 +117,10 @@ export interface AppSettings {
   aiProvider?: AIProvider;
   aiApiKey?: string;
   aiModel?: string;
+  aiCustomModel?: string;
   ollamaUrl?: string;
   onboardingCompleted?: boolean;
+  enableScrollButtons?: boolean;
 }
 
 export interface Analytics {
@@ -132,7 +142,7 @@ export interface Workspace {
 
 export interface AIMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
 }

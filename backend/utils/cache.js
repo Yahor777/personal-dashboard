@@ -1,72 +1,77 @@
-/**
- * Simple in-memory cache with TTL
- * Для production используйте Redis
- */
-class CacheService {
-  constructor() {
-    this.cache = new Map();
-  }
+const store = new Map();
 
-  /**
-   * Generate cache key
-   */
-  generateKey(query, filters) {
-    return `${query}:${JSON.stringify(filters)}`;
+const normalize = (value) => {
+  if (value === undefined || value === null) {
+    return null;
   }
+  if (typeof value === "object") {
+    const entries = Object.entries(value)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([k, v]) => [k, normalize(v)]);
+    return Object.fromEntries(entries);
+  }
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  return value;
+};
 
-  /**
-   * Get cached data
-   */
-  get(key) {
-    const item = this.cache.get(key);
-    
-    if (!item) {
-      return null;
+const toMillis = (ttlSeconds) => {
+  const seconds = Number.isFinite(ttlSeconds) ? ttlSeconds : 0;
+  return Math.max(0, seconds) * 1000;
+};
+
+function generateKey(base, modifiers = {}) {
+  const normalizedBase = String(base ?? "").trim().toLowerCase();
+  const normalizedModifiers = normalize(modifiers);
+  return `${normalizedBase}::${JSON.stringify(normalizedModifiers)}`;
+}
+
+function get(key) {
+  const cached = store.get(key);
+  if (!cached) {
+    return undefined;
+  }
+  if (cached.expiresAt && cached.expiresAt < Date.now()) {
+    store.delete(key);
+    return undefined;
+  }
+  return cached.value;
+}
+
+function set(key, value, ttlSeconds) {
+  const expiresAt = ttlSeconds ? Date.now() + toMillis(ttlSeconds) : undefined;
+  store.set(key, { value, expiresAt });
+}
+
+function del(key) {
+  store.delete(key);
+}
+
+function clear() {
+  store.clear();
+}
+
+function size() {
+  return store.size;
+}
+
+function prune() {
+  const now = Date.now();
+  for (const [key, entry] of store.entries()) {
+    if (entry.expiresAt && entry.expiresAt < now) {
+      store.delete(key);
     }
-
-    // Check if expired
-    if (item.expires < Date.now()) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    console.log(`[Cache] HIT: ${key}`);
-    return item.data;
-  }
-
-  /**
-   * Set cache data
-   */
-  set(key, data, ttlSeconds = 300) {
-    const expires = Date.now() + (ttlSeconds * 1000);
-    this.cache.set(key, { data, expires });
-    console.log(`[Cache] SET: ${key} (TTL: ${ttlSeconds}s)`);
-  }
-
-  /**
-   * Clear all cache
-   */
-  clear() {
-    this.cache.clear();
-    console.log('[Cache] Cleared all cache');
-  }
-
-  /**
-   * Get cache stats
-   */
-  stats() {
-    const total = this.cache.size;
-    let valid = 0;
-    const now = Date.now();
-
-    for (const [key, item] of this.cache.entries()) {
-      if (item.expires > now) {
-        valid++;
-      }
-    }
-
-    return { total, valid, expired: total - valid };
   }
 }
 
-export default new CacheService();
+export default {
+  generateKey,
+  get,
+  set,
+  delete: del,
+  clear,
+  size,
+  prune,
+};

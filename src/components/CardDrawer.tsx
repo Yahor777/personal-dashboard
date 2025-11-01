@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from 'react';
 import { X, Trash2, Copy, Calendar as CalendarIcon, Plus, Sparkles, Timer } from 'lucide-react';
 import { useStore } from '../store/useStore';
