@@ -27,7 +27,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import type { TabTemplate } from '../types';
-import { motion } from 'framer-motion';
 
 interface AppSidebarProps {
   onOpenSettings: () => void;
@@ -67,112 +66,95 @@ export function AppSidebar({
 
   return (
     <>
-      <Sidebar className="backdrop-blur-xl bg-sidebar/95 border-r border-sidebar-border/50">
-        <SidebarHeader className="border-b border-sidebar-border/50 p-4">
-          <motion.div 
-            className="flex items-center gap-3"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Home className="size-5 text-primary" />
-            </motion.div>
-            <h2 className="font-semibold tracking-tight">{workspace.name}</h2>
-          </motion.div>
+      <Sidebar className="border-r border-border/60 bg-background">
+        <SidebarHeader className="border-b border-border/60 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground/10">
+                <Home className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold">{workspace.name}</span>
+            </div>
+          </div>
         </SidebarHeader>
 
         <SidebarContent className="flex-1 overflow-y-auto">
           <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center justify-between px-4 py-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Вкладки</span>
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 rounded-full hover:bg-accent/50 transition-all"
-                  onClick={() => setIsNewTabDialogOpen(true)}
-                >
-                  <Plus className="size-4" />
-                </Button>
-              </motion.div>
+            <SidebarGroupLabel className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Вкладки
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 rounded-lg hover:bg-accent/50"
+                onClick={() => setIsNewTabDialogOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <ScrollArea className="flex-1">
                 <SidebarMenu>
                   {(!workspace.tabs || workspace.tabs.length === 0) ? (
-                    <motion.div 
-                      className="px-4 py-8 text-center text-muted-foreground"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      <p className="mb-4 text-sm">{t('emptyTab')}</p>
-                      <Button onClick={() => setIsNewTabDialogOpen(true)} size="sm" className="rounded-full">
-                        <Plus className="mr-2 size-4" />
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <p className="mb-4">{t('emptyTab')}</p>
+                      <Button onClick={() => setIsNewTabDialogOpen(true)} size="sm" className="rounded-lg">
+                        <Plus className="mr-2 h-3.5 w-3.5" />
                         {t('newTab')}
                       </Button>
-                    </motion.div>
+                    </div>
                   ) : (
                     (workspace.tabs || [])
                       .sort((a, b) => a.order - b.order)
-                      .map((tab, index) => (
-                        <motion.div
-                          key={tab.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                        >
-                          <SidebarMenuItem>
-                            <DropdownMenu>
-                              <SidebarMenuButton
-                                isActive={currentTabId === tab.id}
-                                onClick={() => setCurrentTab(tab.id)}
-                                className={`
-                                  w-full justify-between rounded-xl transition-all duration-200
-                                  ${currentTabId === tab.id 
-                                    ? 'bg-primary/10 text-primary hover:bg-primary/15' 
-                                    : 'hover:bg-accent/50'
-                                  }
-                                `}
+                      .map((tab) => (
+                        <SidebarMenuItem key={tab.id}>
+                          <DropdownMenu>
+                            <SidebarMenuButton
+                              isActive={currentTabId === tab.id}
+                              onClick={() => setCurrentTab(tab.id)}
+                              className={`
+                                w-full justify-between rounded-lg transition-all
+                                ${currentTabId === tab.id 
+                                  ? 'bg-foreground/10 text-foreground hover:bg-foreground/15' 
+                                  : 'hover:bg-accent/50'
+                                }
+                              `}
+                            >
+                              <span className="truncate text-sm font-medium">{tab.title}</span>
+                            </SidebarMenuButton>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 p-0 opacity-0 group-hover:opacity-100 rounded-lg"
+                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
                               >
-                                <span className="truncate font-medium">{tab.title}</span>
-                              </SidebarMenuButton>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 p-0 opacity-0 group-hover:opacity-100 rounded-full transition-all"
-                                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                >
-                                  •••
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-xl">
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    const newTitle = prompt(t('renameTab'), tab.title);
-                                    if (newTitle) updateTab(tab.id, { title: newTitle });
-                                  }}
-                                >
-                                  {t('renameTab')}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    if (confirm('Удалить вкладку?')) {
-                                      deleteTab(tab.id);
-                                    }
-                                  }}
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  {t('deleteTab')}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </SidebarMenuItem>
-                        </motion.div>
+                                •••
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-lg">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  const newTitle = prompt(t('renameTab'), tab.title);
+                                  if (newTitle) updateTab(tab.id, { title: newTitle });
+                                }}
+                              >
+                                {t('renameTab')}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (confirm('Удалить вкладку?')) {
+                                    deleteTab(tab.id);
+                                  }
+                                }}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                {t('deleteTab')}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </SidebarMenuItem>
                       ))
                   )}
                 </SidebarMenu>
@@ -181,65 +163,51 @@ export function AppSidebar({
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border/50 p-3 space-y-1">
+        <SidebarFooter className="border-t border-border/60 p-3 space-y-1">
           <SidebarMenu>
             {[
               { icon: Sparkles, label: t('aiAssistant'), onClick: onOpenAI },
-              { icon: Search, label: '🛒 OLX Поиск', onClick: onOpenOLXSearch },
-              { icon: Cpu, label: '🖥️ PC Builder', onClick: onOpenPCBuilder },
-              { icon: Code2, label: '🐍 Python Roadmap', onClick: onOpenPythonLearning },
-              { icon: Gamepad2, label: '🎮 CS2 Tracker', onClick: onOpenCS2Tracker },
+              { icon: Search, label: 'OLX Поиск', onClick: onOpenOLXSearch },
+              { icon: Cpu, label: 'PC Builder', onClick: onOpenPCBuilder },
+              { icon: Code2, label: 'Python', onClick: onOpenPythonLearning },
+              { icon: Gamepad2, label: 'CS2 Tracker', onClick: onOpenCS2Tracker },
               { icon: BarChart3, label: t('analytics'), onClick: onOpenAnalytics },
               { icon: Download, label: 'Импорт/Экспорт', onClick: onOpenImportExport },
               { icon: Settings, label: t('settings'), onClick: onOpenSettings },
-            ].map((item, index) => (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.03 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    onClick={item.onClick}
-                    className="rounded-xl hover:bg-accent/50 transition-all duration-200"
-                  >
-                    <item.icon className="size-4" />
-                    <span className="text-sm">{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </motion.div>
-            ))}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <SidebarMenuItem>
+            ].map((item) => (
+              <SidebarMenuItem key={item.label}>
                 <SidebarMenuButton 
-                  onClick={() => {
-                    if (confirm('Выйти из аккаунта?')) {
-                      logout();
-                    }
-                  }} 
-                  className="text-destructive hover:bg-destructive/10 rounded-xl transition-all duration-200"
+                  onClick={item.onClick}
+                  className="rounded-lg hover:bg-accent/50 text-sm"
                 >
-                  <LogOut className="size-4" />
-                  <span className="text-sm truncate">
-                    Выйти {authState.currentUser && `(${authState.currentUser.name})`}
-                  </span>
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </motion.div>
+            ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                onClick={() => {
+                  if (confirm('Выйти из аккаунта?')) {
+                    logout();
+                  }
+                }} 
+                className="text-destructive hover:bg-destructive/10 rounded-lg text-sm"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="truncate">
+                  Выйти {authState.currentUser && `(${authState.currentUser.name})`}
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
 
       <Dialog open={isNewTabDialogOpen} onOpenChange={setIsNewTabDialogOpen}>
-        <DialogContent className="rounded-3xl">
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">{t('newTab')}</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{t('newTab')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -249,7 +217,7 @@ export function AppSidebar({
                 value={newTabTitle}
                 onChange={(e) => setNewTabTitle(e.target.value)}
                 placeholder="Например: Учёба, Проекты..."
-                className="rounded-xl"
+                className="rounded-lg"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleCreateTab();
                 }}
@@ -258,10 +226,10 @@ export function AppSidebar({
             <div className="space-y-2">
               <Label htmlFor="tab-template" className="text-sm font-medium">Шаблон</Label>
               <Select value={newTabTemplate} onValueChange={(v: string) => setNewTabTemplate(v as TabTemplate)}>
-                <SelectTrigger id="tab-template" className="rounded-xl">
+                <SelectTrigger id="tab-template" className="rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent className="rounded-lg">
                   <SelectItem value="blank">{t('templateBlank')}</SelectItem>
                   <SelectItem value="school">{t('templateSchool')}</SelectItem>
                   <SelectItem value="cooking">{t('templateCooking')}</SelectItem>
@@ -273,10 +241,10 @@ export function AppSidebar({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNewTabDialogOpen(false)} className="rounded-full">
+            <Button variant="outline" onClick={() => setIsNewTabDialogOpen(false)} className="rounded-lg">
               {t('cancel')}
             </Button>
-            <Button onClick={handleCreateTab} disabled={!newTabTitle.trim()} className="rounded-full">
+            <Button onClick={handleCreateTab} disabled={!newTabTitle.trim()} className="rounded-lg">
               {t('create')}
             </Button>
           </DialogFooter>
