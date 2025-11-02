@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
@@ -13,10 +13,12 @@ import {
 } from "../ui/select";
 import { Separator } from "../ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
-import { Palette, Globe, Bell, Database, Trash2, Sparkles, Save } from "lucide-react";
+import { Palette, Globe, Bell, Database, Trash2, Sparkles, Save, X } from "lucide-react";
 import { motion } from "motion/react";
-import { getAISettings, saveAISettings, AI_MODELS, type AISettings } from "../../lib/ai-settings";
+import { getAISettings, saveAISettings, type AISettings } from "../../lib/ai-settings";
 import { toast } from "sonner";
+import { useDashboardStore } from "../../store/dashboardStore";
+import type { Preferences } from "../../store/dashboardStore";
 
 interface SettingsProps {
   theme: "light" | "dark";
@@ -24,29 +26,61 @@ interface SettingsProps {
 }
 
 export function Settings({ theme, onThemeChange }: SettingsProps) {
-  const storageAvailable = typeof window !== "undefined" && !!window.localStorage;
   const [aiSettings, setAISettings] = useState<AISettings>(() => getAISettings());
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    if (!storageAvailable) {
-      return true;
-    }
-    return window.localStorage.getItem("notifications-enabled") !== "false";
-  });
+  const [newModelId, setNewModelId] = useState("");
+  const preferences = useDashboardStore((state) => state.preferences);
+  const updatePreferences = useDashboardStore((state) => state.updatePreferences);
+  const updateNotificationChannels = useDashboardStore((state) => state.updateNotificationChannels);
 
-  useEffect(() => {
-    if (!storageAvailable) {
-      return;
-    }
-    window.localStorage.setItem("notifications-enabled", notificationsEnabled.toString());
-  }, [notificationsEnabled, storageAvailable]);
+  const savedModels = aiSettings.savedModels ?? [];
+
+  const notificationsEnabled = preferences.notificationsEnabled;
+  const notificationChannels = preferences.notificationChannels;
 
   const handleSaveAISettings = () => {
-    saveAISettings(aiSettings);
+    const normalized = saveAISettings(aiSettings);
+    setAISettings(normalized);
     toast.success("AI настройки сохранены");
   };
 
+  const handleAddSavedModel = () => {
+    const trimmed = newModelId.trim();
+    if (!trimmed) {
+      toast.error("Введите идентификатор модели OpenRouter");
+      return;
+    }
+    if (savedModels.includes(trimmed)) {
+      toast.info("Такая модель уже сохранена");
+      return;
+    }
+
+    const next = {
+      ...aiSettings,
+      savedModels: [...savedModels, trimmed],
+      selectedModel: aiSettings.selectedModel || trimmed,
+    };
+    const normalized = saveAISettings(next);
+    setAISettings(normalized);
+    setNewModelId("");
+    toast.success("Модель добавлена", { description: trimmed });
+  };
+
+  const handleRemoveSavedModel = (model: string) => {
+    const updated = savedModels.filter((item) => item !== model);
+    const nextSelected =
+      aiSettings.selectedModel === model ? updated[0] ?? "" : aiSettings.selectedModel;
+    const next = {
+      ...aiSettings,
+      savedModels: updated,
+      selectedModel: nextSelected,
+    };
+    const normalized = saveAISettings(next);
+    setAISettings(normalized);
+    toast.info("Модель удалена", { description: model });
+  };
+
   const handleClearData = () => {
-    if (storageAvailable) {
+    if (typeof window !== "undefined" && window.localStorage) {
       window.localStorage.clear();
     }
     toast.success("Все данные очищены");
@@ -92,7 +126,12 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
 
               <div className="space-y-2">
                 <Label>Акцентный цвет</Label>
-                <Select defaultValue="indigo">
+                <Select
+                  value={preferences.accentColor}
+                  onValueChange={(val: Preferences["accentColor"]) =>
+                    updatePreferences({ accentColor: val })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -108,7 +147,12 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
 
               <div className="space-y-2">
                 <Label>Шрифт</Label>
-                <Select defaultValue="inter">
+                <Select
+                  value={preferences.font}
+                  onValueChange={(val: Preferences["font"]) =>
+                    updatePreferences({ font: val })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -127,7 +171,12 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
                     Улучшает читаемость для людей с нарушениями зрения
                   </p>
                 </div>
-                <Switch />
+                <Switch
+                  checked={preferences.highContrast}
+                  onCheckedChange={(checked: boolean) =>
+                    updatePreferences({ highContrast: checked })
+                  }
+                />
               </div>
             </CardContent>
           </Card>
@@ -196,21 +245,61 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
                     <Input
                       placeholder="meta-llama/llama-3.1-70b-instruct:free"
                       value={aiSettings.selectedModel}
-                      list="openrouter-models"
+                      list={savedModels.length ? "openrouter-saved-models" : undefined}
                       onChange={(e) =>
                         setAISettings({ ...aiSettings, selectedModel: e.target.value })
                       }
                     />
-                    <datalist id="openrouter-models">
-                      {AI_MODELS.openrouter.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.name}
-                        </option>
-                      ))}
-                    </datalist>
+                    {savedModels.length > 0 && (
+                      <datalist id="openrouter-saved-models">
+                        {savedModels.map((model) => (
+                          <option key={model} value={model} />
+                        ))}
+                      </datalist>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       Укажите точное имя модели OpenRouter. Добавьте суффикс <code>:free</code>, если хотите бесплатную версию.
                     </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Сохранённые модели</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="anthropic/claude-3.5-sonnet"
+                        value={newModelId}
+                        onChange={(event) => setNewModelId(event.target.value)}
+                      />
+                      <Button variant="outline" onClick={handleAddSavedModel}>
+                        Добавить
+                      </Button>
+                    </div>
+                    {savedModels.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {savedModels.map((model) => (
+                          <span
+                            key={model}
+                            className="inline-flex items-center gap-2 rounded-full border border-muted-foreground/20 bg-muted px-3 py-1 text-xs"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSavedModel(model)}
+                              className="rounded-full p-0.5 text-muted-foreground transition-colors hover:text-destructive"
+                              aria-label={`Удалить модель ${model}`}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                            <span className="max-w-[220px] truncate font-medium" title={model}>
+                              {model}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Сохраните часто используемые модели, чтобы быстро переключаться между ними.
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -278,7 +367,12 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Язык интерфейса</Label>
-                <Select defaultValue="ru">
+                <Select
+                  value={preferences.language}
+                  onValueChange={(val: Preferences["language"]) =>
+                    updatePreferences({ language: val })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -292,7 +386,10 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
 
               <div className="space-y-2">
                 <Label>Часовой пояс</Label>
-                <Select defaultValue="europe-moscow">
+                <Select
+                  value={preferences.timezone}
+                  onValueChange={(val: string) => updatePreferences({ timezone: val })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -329,9 +426,11 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
                     Показывать уведомления о действиях в приложении
                   </p>
                 </div>
-                <Switch 
+                <Switch
                   checked={notificationsEnabled}
-                  onCheckedChange={setNotificationsEnabled}
+                  onCheckedChange={(checked: boolean) =>
+                    updatePreferences({ notificationsEnabled: checked })
+                  }
                 />
               </div>
 
@@ -344,7 +443,13 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
                     Уведомления о новых и завершённых задачах
                   </p>
                 </div>
-                <Switch defaultChecked disabled={!notificationsEnabled} />
+                <Switch
+                  checked={notificationChannels.tasks}
+                  disabled={!notificationsEnabled}
+                  onCheckedChange={(checked: boolean) =>
+                    updateNotificationChannels({ tasks: checked })
+                  }
+                />
               </div>
 
               <Separator />
@@ -356,7 +461,13 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
                     Уведомления о новых результатах поиска OLX
                   </p>
                 </div>
-                <Switch defaultChecked disabled={!notificationsEnabled} />
+                <Switch
+                  checked={notificationChannels.search}
+                  disabled={!notificationsEnabled}
+                  onCheckedChange={(checked: boolean) =>
+                    updateNotificationChannels({ search: checked })
+                  }
+                />
               </div>
 
               <Separator />
@@ -368,7 +479,13 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
                     Еженедельные сводки производительности
                   </p>
                 </div>
-                <Switch disabled={!notificationsEnabled} />
+                <Switch
+                  checked={notificationChannels.analytics}
+                  disabled={!notificationsEnabled}
+                  onCheckedChange={(checked: boolean) =>
+                    updateNotificationChannels({ analytics: checked })
+                  }
+                />
               </div>
 
               <Separator />
@@ -380,7 +497,13 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
                     Воспроизведение звука при уведомлениях
                   </p>
                 </div>
-                <Switch defaultChecked disabled={!notificationsEnabled} />
+                <Switch
+                  checked={notificationChannels.sounds}
+                  disabled={!notificationsEnabled}
+                  onCheckedChange={(checked: boolean) =>
+                    updateNotificationChannels({ sounds: checked })
+                  }
+                />
               </div>
             </CardContent>
           </Card>

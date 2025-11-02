@@ -24,9 +24,9 @@ type GoogleUser = {
 };
 
 interface LoginRegisterModalProps {
-  onLogin: (email: string, password: string) => boolean;
-  onRegister: (name: string, email: string, password: string) => boolean;
-  onGoogleLogin?: (user: GoogleUser) => void;
+  onLogin: (email: string, password: string) => Promise<boolean>;
+  onRegister: (name: string, email: string, password: string) => Promise<boolean>;
+  onGoogleLogin?: (user: GoogleUser) => Promise<void> | void;
   onClose?: () => void;
 }
 
@@ -84,12 +84,14 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin, onClose
         }
 
         if (result?.user && onGoogleLogin) {
-          onGoogleLogin({
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-          });
+          await Promise.resolve(
+            onGoogleLogin({
+              uid: result.user.uid,
+              email: result.user.email,
+              displayName: result.user.displayName,
+              photoURL: result.user.photoURL,
+            }),
+          );
         }
       } catch (redirectError) {
         if (isMounted) {
@@ -132,7 +134,7 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin, onClose
 
   const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  const submitLogin = (formEvent: FormEvent<HTMLFormElement>) => {
+  const submitLogin = async (formEvent: FormEvent<HTMLFormElement>) => {
     formEvent.preventDefault();
     setError(null);
 
@@ -147,17 +149,19 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin, onClose
     }
 
     setIsLoading(true);
-
-    window.setTimeout(() => {
-      const success = onLogin(loginEmail, loginPassword);
+    try {
+      const success = await onLogin(loginEmail, loginPassword);
       if (!success) {
         setError("Неверный email или пароль");
       }
+    } catch (authError) {
+      setError(getFirebaseErrorMessage(authError));
+    } finally {
       setIsLoading(false);
-    }, 300);
+    }
   };
 
-  const submitRegister = (formEvent: FormEvent<HTMLFormElement>) => {
+  const submitRegister = async (formEvent: FormEvent<HTMLFormElement>) => {
     formEvent.preventDefault();
     setError(null);
 
@@ -177,14 +181,16 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin, onClose
     }
 
     setIsLoading(true);
-
-    window.setTimeout(() => {
-      const success = onRegister(registerName, registerEmail, registerPassword);
+    try {
+      const success = await onRegister(registerName, registerEmail, registerPassword);
       if (!success) {
         setError("Пользователь с таким email уже существует");
       }
+    } catch (registerError) {
+      setError(getFirebaseErrorMessage(registerError));
+    } finally {
       setIsLoading(false);
-    }, 300);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -194,12 +200,14 @@ export function LoginRegisterModal({ onLogin, onRegister, onGoogleLogin, onClose
     try {
       const result = await signInWithPopup(auth, googleProvider);
       if (result.user && onGoogleLogin) {
-        onGoogleLogin({
-          uid: result.user.uid,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-        });
+        await Promise.resolve(
+          onGoogleLogin({
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+          }),
+        );
       }
     } catch (popupError: unknown) {
       const code =

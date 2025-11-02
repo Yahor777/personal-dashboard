@@ -4,10 +4,9 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import { Badge } from "../ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Sparkles, Send, Copy, Plus, FileText, CheckSquare, Lightbulb, Settings as SettingsIcon, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
-import { getAISettings, sendAIMessage, AI_MODELS, saveAISettings } from "../../lib/ai-settings";
+import { getAISettings, sendAIMessage, saveAISettings } from "../../lib/ai-settings";
 import { toast } from "sonner";
 
 interface Message {
@@ -38,7 +37,9 @@ export function AIAssistant({ onOpenSettings }: AIAssistantProps) {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [aiSettings, setAISettings] = useState(getAISettings());
+  const [modelInput, setModelInput] = useState(aiSettings.selectedModel);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const savedModels = Array.isArray(aiSettings.savedModels) ? aiSettings.savedModels : [];
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
@@ -97,15 +98,46 @@ export function AIAssistant({ onOpenSettings }: AIAssistantProps) {
     toast.success("Скопировано в буфер обмена");
   };
 
-  const handleModelChange = (model: string) => {
+  useEffect(() => {
+    setModelInput(aiSettings.selectedModel);
+  }, [aiSettings.selectedModel]);
+
+  const handleApplyModel = () => {
+    const trimmed = modelInput.trim();
+    if (!trimmed) {
+      toast.error("Укажите идентификатор модели");
+      return;
+    }
     setAISettings((prev) => {
-      const next = { ...prev, selectedModel: model };
-      saveAISettings(next);
-      return next;
+      const alreadySaved = Array.isArray(prev.savedModels) && prev.savedModels.includes(trimmed);
+      const nextModels = alreadySaved
+        ? prev.savedModels
+        : [...(prev.savedModels ?? []), trimmed];
+      const normalized = saveAISettings({
+        ...prev,
+        selectedModel: trimmed,
+        savedModels: nextModels,
+      });
+      return normalized;
     });
     toast.success("Модель обновлена", {
-      description: model,
+      description: trimmed,
     });
+  };
+
+  const handleSelectSavedModel = (model: string) => {
+    if (aiSettings.selectedModel === model) {
+      toast.info("Эта модель уже активна", { description: model });
+      return;
+    }
+    setAISettings((prev) => {
+      const normalized = saveAISettings({
+        ...prev,
+        selectedModel: model,
+      });
+      return normalized;
+    });
+    toast.success("Модель активирована", { description: model });
   };
 
   const handleOpenSettings = () => {
@@ -118,10 +150,6 @@ export function AIAssistant({ onOpenSettings }: AIAssistantProps) {
     });
   };
 
-  const currentModels = aiSettings.provider === "openrouter" ? AI_MODELS.openrouter : AI_MODELS.custom;
-  const isCustomModel =
-    !!aiSettings.selectedModel &&
-    !currentModels.some((model) => model.id === aiSettings.selectedModel);
   const hasAPIKey = aiSettings.provider === "openrouter" 
     ? !!aiSettings.openRouterApiKey 
     : !!(aiSettings.customApiKey && aiSettings.customApiUrl);
@@ -138,24 +166,37 @@ export function AIAssistant({ onOpenSettings }: AIAssistantProps) {
             Умный помощник для генерации контента и автоматизации задач
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={aiSettings.selectedModel} onValueChange={handleModelChange}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Выбрать модель" />
-            </SelectTrigger>
-            <SelectContent>
-              {currentModels.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  {model.name}
-                </SelectItem>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <Input
+              className="w-56"
+              placeholder={aiSettings.provider === "openrouter" ? "anthropic/claude-3.5-sonnet" : "custom-model"}
+              value={modelInput}
+              onChange={(event) => setModelInput(event.target.value)}
+            />
+            <Button variant="outline" size="sm" onClick={handleApplyModel}>
+              Сохранить
+            </Button>
+          </div>
+          {savedModels.length > 0 && (
+            <div className="flex flex-wrap justify-end gap-2">
+              {savedModels.map((model) => (
+                <button
+                  key={model}
+                  type="button"
+                  onClick={() => handleSelectSavedModel(model)}
+                  className={`inline-flex max-w-[220px] items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ${
+                    aiSettings.selectedModel === model
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-muted-foreground/20 bg-muted hover:bg-muted/80"
+                  }`}
+                  title={model}
+                >
+                  <span className="truncate">{model}</span>
+                </button>
               ))}
-              {isCustomModel && (
-                <SelectItem value={aiSettings.selectedModel}>
-                  {aiSettings.selectedModel} (custom)
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+            </div>
+          )}
         </div>
       </div>
 

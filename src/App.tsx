@@ -23,13 +23,8 @@ import { toast } from "sonner";
 export default function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [commandOpen, setCommandOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-    const saved = window.localStorage.getItem("theme");
-    return (saved as "light" | "dark") || "light";
-  });
+  const theme = useDashboardStore((state) => state.preferences.theme);
+  const setThemePreference = useDashboardStore((state) => state.setTheme);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -79,14 +74,14 @@ export default function App() {
       case "import-export":
         return <ImportExport />;
       case "settings":
-        return <Settings theme={theme} onThemeChange={setTheme} />;
+        return <Settings theme={theme} onThemeChange={setThemePreference} />;
       default:
         return <Dashboard onNavigate={setCurrentPage} />;
     }
   };
 
-  const handleLogin = (email: string, password: string) => {
-    const result = loginUser(email, password);
+  const handleLogin = async (email: string, password: string) => {
+    const result = await loginUser(email, password);
     if (result.success) {
       toast.success("Добро пожаловать!", { description: email });
       setAuthModalOpen(false);
@@ -98,8 +93,8 @@ export default function App() {
     return false;
   };
 
-  const handleRegister = (name: string, email: string, password: string) => {
-    const result = registerUser(name, email, password);
+  const handleRegister = async (name: string, email: string, password: string) => {
+    const result = await registerUser(name, email, password);
     if (result.success) {
       toast.success("Аккаунт создан", { description: email });
       setAuthModalOpen(false);
@@ -111,7 +106,7 @@ export default function App() {
     return false;
   };
 
-  const handleGoogleLogin = (user: {
+  const handleGoogleLogin = async (user: {
     uid: string;
     email: string | null;
     displayName: string | null;
@@ -121,14 +116,19 @@ export default function App() {
       toast.error("Google не вернул email");
       return;
     }
-    loginWithGoogle({
-      id: user.uid,
-      name: user.displayName ?? user.email,
-      email: user.email,
-      avatar: user.photoURL,
-    });
-    toast.success("Вход через Google выполнен");
-    setAuthModalOpen(false);
+    try {
+      await loginWithGoogle({
+        id: user.uid,
+        name: user.displayName ?? user.email,
+        email: user.email,
+        avatar: user.photoURL,
+      });
+      toast.success("Вход через Google выполнен");
+      setAuthModalOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Не удалось выполнить вход через Google";
+      toast.error(message);
+    }
   };
 
   return (
@@ -136,7 +136,7 @@ export default function App() {
       <Header
         onCommandOpen={() => setCommandOpen(true)}
         theme={theme}
-        onThemeChange={setTheme}
+        onThemeChange={setThemePreference}
         onNavigate={setCurrentPage}
         onLoginClick={() => setAuthModalOpen(true)}
       />
@@ -157,9 +157,9 @@ export default function App() {
       <Toaster />
       {authModalOpen && (
         <LoginRegisterModal
-          onLogin={handleLogin}
-          onRegister={handleRegister}
-          onGoogleLogin={handleGoogleLogin}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onGoogleLogin={handleGoogleLogin}
         />
       )}
     </div>

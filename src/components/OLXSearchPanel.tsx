@@ -44,6 +44,28 @@ interface SearchResult {
   marketplace?: string;
 }
 
+const normalizeText = (value?: string) =>
+  (value ?? "")
+    .toLowerCase()
+    .replace(/[\s_-]+/g, " ")
+    .replace(/[^a-z0-9ąćęłńóśźż\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const matchesQuery = (item: SearchResult, query: string) => {
+  const tokens = normalizeText(query).split(" ").filter(Boolean);
+  if (!tokens.length) {
+    return true;
+  }
+
+  const haystack = `${normalizeText(item.title)} ${normalizeText(item.description)}`.trim();
+  if (!haystack) {
+    return false;
+  }
+
+  return tokens.every((token) => haystack.includes(token));
+};
+
 const PC_COMPONENTS = [
   { value: 'gpu', label: '🎮 GPU / Видеокарта', keywords: 'видеокарта gpu graphics card rtx gtx rx' },
   { value: 'cpu', label: '⚡ CPU / Процессор', keywords: 'процессор cpu intel amd ryzen' },
@@ -196,7 +218,7 @@ export const OLXSearchPanel = memo(function OLXSearchPanel({ onClose }: OLXSearc
           maxPrice: maxPrice || undefined,
           category: componentType,
           location: location !== 'all' ? location : undefined,
-          maxPages: 3,
+          maxPages: 5,
         }),
       });
 
@@ -207,12 +229,12 @@ export const OLXSearchPanel = memo(function OLXSearchPanel({ onClose }: OLXSearc
       const data = await response.json();
       
       // Apply additional client-side filters
-      let filteredResults = data.results || [];
+      let filteredResults = Array.isArray(data.results) ? data.results : [];
       
       // Search query filter
-      if (searchQuery) {
+      if (searchQuery.trim()) {
         filteredResults = filteredResults.filter((item: SearchResult) =>
-          item.title.toLowerCase().includes(searchQuery.toLowerCase())
+          matchesQuery(item, searchQuery),
         );
       }
       
@@ -220,6 +242,16 @@ export const OLXSearchPanel = memo(function OLXSearchPanel({ onClose }: OLXSearc
       if (condition !== 'all') {
         filteredResults = filteredResults.filter((item: SearchResult) => item.condition === condition);
       }
+
+      const uniqueResults = new Map<string, SearchResult>();
+      filteredResults.forEach((item: SearchResult) => {
+        const key = item.id || item.url || item.title;
+        if (!uniqueResults.has(key)) {
+          uniqueResults.set(key, item);
+        }
+      });
+
+      filteredResults = Array.from(uniqueResults.values());
 
       // Apply sorting
       filteredResults.sort((a: SearchResult, b: SearchResult) => {
@@ -234,7 +266,7 @@ export const OLXSearchPanel = memo(function OLXSearchPanel({ onClose }: OLXSearc
         }
       });
       
-      setResults(filteredResults);
+  setResults(filteredResults);
       
       if (filteredResults.length > 0) {
         toast.success(`Найдено ${filteredResults.length} объявлений на ${selectedMarketplace.label}`, {

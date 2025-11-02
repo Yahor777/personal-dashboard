@@ -4,79 +4,97 @@ export interface AISettings {
   customApiKey: string;
   customApiUrl: string;
   selectedModel: string;
+  savedModels: string[];
 }
-
-export const AI_MODELS = {
-  openrouter: [
-    { id: "openai/gpt-4-turbo-preview", name: "GPT-4 Turbo" },
-    { id: "openai/gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
-    { id: "anthropic/claude-3-opus", name: "Claude 3 Opus" },
-    { id: "anthropic/claude-3-sonnet", name: "Claude 3 Sonnet" },
-    { id: "google/gemini-pro", name: "Gemini Pro" },
-    { id: "meta-llama/llama-3-70b-instruct", name: "Llama 3 70B" },
-  ],
-  custom: [
-    { id: "custom-gpt-4", name: "Custom GPT-4" },
-    { id: "custom-model", name: "Custom Model" },
-  ],
-};
 
 const STORAGE_KEY = "ai-settings";
 
+const createDefaultSettings = (): AISettings => ({
+  provider: "openrouter",
+  openRouterApiKey: "",
+  customApiKey: "",
+  customApiUrl: "",
+  selectedModel: "openai/gpt-3.5-turbo",
+  savedModels: [],
+});
+
+const normalizeSettings = (input?: Partial<AISettings>): AISettings => {
+  const defaults = createDefaultSettings();
+  if (!input) {
+    return defaults;
+  }
+
+  const sanitize = (value?: unknown) => (typeof value === "string" ? value.trim() : "");
+
+  const savedModels = Array.isArray(input.savedModels)
+    ? Array.from(
+        new Set(
+          input.savedModels
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      )
+    : [];
+
+  const selectedModelRaw = sanitize(input.selectedModel);
+  const selectedModel = selectedModelRaw || savedModels[0] || defaults.selectedModel;
+
+  return {
+    provider: input.provider === "custom" ? "custom" : "openrouter",
+    openRouterApiKey: sanitize(input.openRouterApiKey),
+    customApiKey: sanitize(input.customApiKey),
+    customApiUrl: sanitize(input.customApiUrl),
+    selectedModel,
+    savedModels,
+  };
+};
+
 export function getAISettings(): AISettings {
   if (typeof window === "undefined" || !window.localStorage) {
-    return {
-      provider: "openrouter",
-      openRouterApiKey: "",
-      customApiKey: "",
-      customApiUrl: "",
-      selectedModel: "openai/gpt-3.5-turbo",
-    };
+    return createDefaultSettings();
   }
 
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      return normalizeSettings(JSON.parse(stored));
     } catch (e) {
       console.error("Failed to parse AI settings:", e);
     }
   }
-  return {
-    provider: "openrouter",
-    openRouterApiKey: "",
-    customApiKey: "",
-    customApiUrl: "",
-    selectedModel: "openai/gpt-3.5-turbo",
-  };
+  return createDefaultSettings();
 }
 
-export function saveAISettings(settings: AISettings): void {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return;
+export function saveAISettings(settings: AISettings): AISettings {
+  const normalized = normalizeSettings(settings);
+  if (typeof window !== "undefined" && window.localStorage) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
   }
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  return normalized;
 }
 
 export async function sendAIMessage(message: string, settings: AISettings): Promise<string> {
-  if (!settings.selectedModel) {
+  const normalized = normalizeSettings(settings);
+
+  if (!normalized.selectedModel) {
     throw new Error("Не выбрана модель AI. Укажите модель в настройках.");
   }
 
-  if (settings.provider === "openrouter") {
-    if (!settings.openRouterApiKey) {
+  if (normalized.provider === "openrouter") {
+    if (!normalized.openRouterApiKey) {
       throw new Error("OpenRouter API ключ не настроен. Перейдите в Настройки.");
     }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${settings.openRouterApiKey}`,
+        "Authorization": `Bearer ${normalized.openRouterApiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": typeof window !== "undefined" ? window.location.origin : "",
       },
       body: JSON.stringify({
-        model: settings.selectedModel,
+        model: normalized.selectedModel,
         messages: [{ role: "user", content: message }],
       }),
     });
@@ -90,18 +108,18 @@ export async function sendAIMessage(message: string, settings: AISettings): Prom
     return data.choices[0]?.message?.content || "Нет ответа от AI";
   } else {
     // Custom API
-    if (!settings.customApiKey || !settings.customApiUrl) {
+    if (!normalized.customApiKey || !normalized.customApiUrl) {
       throw new Error("Custom API настройки не заполнены. Перейдите в Настройки.");
     }
 
-    const response = await fetch(settings.customApiUrl, {
+    const response = await fetch(normalized.customApiUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${settings.customApiKey}`,
+        "Authorization": `Bearer ${normalized.customApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: settings.selectedModel,
+        model: normalized.selectedModel,
         messages: [{ role: "user", content: message }],
       }),
     });

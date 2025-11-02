@@ -2,6 +2,8 @@
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getDatabase } from "firebase/database";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyArknUpV4qb2dvcMKRNAQDowJaLid7vBLI",
@@ -26,6 +28,8 @@ try {
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const database = getDatabase(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 export { analytics };
 
 googleProvider.setCustomParameters({
